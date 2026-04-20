@@ -120,7 +120,7 @@ tasks.register('jlinkImage') {
         def javaHome   = javaHomePfad.get()
         def modulePath = [
             configurations.runtimeClasspath.asPath,
-            layout.buildDirectory.dir('classes/java/main').get().asFile.absolutePath
+            tasks.jar.archiveFile.get().asFile.absolutePath
         ].join(File.pathSeparator)
 
         def exitCode = new ProcessBuilder(
@@ -144,7 +144,10 @@ tasks.register('buildInstaller') {
     dependsOn jlinkImage
 
     doFirst {
-        distributionsDir.get().asFile.mkdirs()
+        def distDir = distributionsDir.get().asFile
+        distDir.mkdirs()
+        def appImageDir = new File(distDir, 'PetanqueTurnierManager-Installer')
+        if (appImageDir.exists()) appImageDir.deleteDir()
     }
 
     doLast {
