@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+
+<VBox
+    xmlns="http://javafx.com/javafx/25"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="de.petanqueturniermanager.installer.controller.VoraussetzungController"
+    styleClass="screen-box"
+    spacing="20">
+
+    <padding>
+        <Insets top="30" right="60" bottom="20" left="60"/>
+    </padding>
+
+    <Label text="%voraussetzung.titel" styleClass="screen-titel"/>
+    <Label text="%voraussetzung.beschreibung" wrapText="true" styleClass="screen-text"/>
+
+    <ProgressIndicator fx:id="ladeAnzeige" prefWidth="40" prefHeight="40"/>
+
+    <GridPane hgap="12" vgap="16">
+        <padding>
+            <Insets top="10"/>
+        </padding>
+
+        <!-- LibreOffice -->
+        <Label fx:id="loStatusSymbol" styleClass="status-symbol" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <VBox GridPane.columnIndex="1" GridPane.rowIndex="0" spacing="6">
+            <Label text="%voraussetzung.lo.label" styleClass="status-label-bold"/>
+            <Label fx:id="loStatusText" wrapText="true" styleClass="status-detail" maxWidth="550"/>
+            <Button fx:id="loInstallierenButton" onAction="#onLoInstallieren" visible="false" managed="false"/>
+        </VBox>
+
+        <!-- Java 25 in LO -->
+        <Label fx:id="javaStatusSymbol" styleClass="status-symbol" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <VBox GridPane.columnIndex="1" GridPane.rowIndex="1" spacing="6">
+            <Label text="%voraussetzung.java.label" styleClass="status-label-bold"/>
+            <Label fx:id="javaStatusText" wrapText="true" styleClass="status-detail" maxWidth="550"/>
+            <Button fx:id="javaInstallierenButton" onAction="#onJavaInstallieren" visible="false" managed="false"/>
+        </VBox>
+
+        <!-- libreoffice-java-common (nur Linux) -->
+        <Label fx:id="paketStatusSymbol" styleClass="status-symbol" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+        <VBox fx:id="paketZeile" GridPane.columnIndex="1" GridPane.rowIndex="2" spacing="6">
+            <Label text="%voraussetzung.lojavapkg.label" styleClass="status-label-bold"/>
+            <Label fx:id="paketStatusText" wrapText="true" styleClass="status-detail" maxWidth="550"/>
+            <Button fx:id="paketInstallierenButton" text="%voraussetzung.paket.installieren.button"
+                    onAction="#onPaketInstallieren" visible="false" managed="false"/>
+        </VBox>
+    </GridPane>
+
+    <HBox alignment="CENTER_RIGHT" spacing="10" maxWidth="Infinity">
+        <HBox.margin>
+            <Insets top="30"/>
+        </HBox.margin>
+        <Button text="%nav.zurueck" onAction="#onZurueck"/>
+        <Button fx:id="weiterButton" text="%nav.weiter" styleClass="button-primary"
+                onAction="#onWeiter" defaultButton="true"/>
+    </HBox>
+</VBox>

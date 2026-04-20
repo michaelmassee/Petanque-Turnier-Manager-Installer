@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+
+<VBox
+    xmlns="http://javafx.com/javafx/25"
+    xmlns:fx="http://javafx.com/fxml/1"
+    fx:controller="de.petanqueturniermanager.installer.controller.WillkommenController"
+    styleClass="screen-box"
+    alignment="CENTER"
+    spacing="20">
+
+    <padding>
+        <Insets top="40" right="60" bottom="20" left="60"/>
+    </padding>
+
+    <ImageView fx:id="logoBild" fitWidth="64" fitHeight="64" preserveRatio="true"/>
+
+    <Label text="%willkommen.titel" styleClass="screen-titel"/>
+    <Label text="%willkommen.untertitel" styleClass="screen-untertitel" wrapText="true" textAlignment="CENTER"/>
+    <Label fx:id="versionLabel" styleClass="screen-version"/>
+
+    <Label text="%willkommen.beschreibung" wrapText="true" textAlignment="CENTER"
+           styleClass="screen-text" maxWidth="600"/>
+
+    <HBox alignment="CENTER_RIGHT" spacing="10" maxWidth="Infinity">
+        <HBox.margin>
+            <Insets top="30"/>
+        </HBox.margin>
+        <Button text="%nav.weiter" styleClass="button-primary" onAction="#onWeiter"
+                defaultButton="true"/>
+    </HBox>
+</VBox>
