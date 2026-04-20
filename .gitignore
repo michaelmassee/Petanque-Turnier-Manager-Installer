@@ -1,0 +1,9 @@
+.gradle/
+build/
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+src/main/resources/de/petanqueturniermanager/installer/oxt/*.oxt
+src/main/resources/de/petanqueturniermanager/installer/images/logo.png
