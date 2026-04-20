@@ -7,9 +7,11 @@ import de.petanqueturniermanager.installer.service.LibreOfficeJavaPruefer;
 import de.petanqueturniermanager.installer.service.LinuxPaketPruefer;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TextArea;
 import javafx.scene.layout.VBox;
 
 import java.awt.Desktop;
@@ -36,6 +38,7 @@ public final class VoraussetzungController {
     @FXML private Label             paketStatusText;
     @FXML private VBox              paketZeile;
     @FXML private Button            paketInstallierenButton;
+    @FXML private Button            aktualisierenButton;
     @FXML private Button            weiterButton;
     @FXML private ProgressIndicator ladeAnzeige;
 
@@ -135,6 +138,7 @@ public final class VoraussetzungController {
                     }
                 }
 
+                aktualisierenButton.setDisable(false);
                 weiterButton.setDisable(!wizard.getZustand().kannInstallieren());
             });
         });
@@ -216,6 +220,31 @@ public final class VoraussetzungController {
                 fuehrePruefungDurch();
             });
         });
+    }
+
+    @FXML
+    private void onJavaInfo() {
+        var texte = wizard.getTexte();
+        var alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(texte.getString("voraussetzung.java.info.titel"));
+        alert.setHeaderText(null);
+
+        var textArea = new TextArea(texte.getString("voraussetzung.java.info.text"));
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefWidth(480);
+        textArea.setPrefHeight(320);
+
+        alert.getDialogPane().setContent(textArea);
+        alert.showAndWait();
+    }
+
+    @FXML
+    private void onAktualisieren() {
+        weiterButton.setDisable(true);
+        aktualisierenButton.setDisable(true);
+        ladeAnzeige.setVisible(true);
+        fuehrePruefungDurch();
     }
 
     @FXML

@@ -13,6 +13,7 @@ import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 public final class LibreOfficeJavaPruefer {
 
@@ -33,9 +34,53 @@ public final class LibreOfficeJavaPruefer {
             if (jrePfad.isPresent()) {
                 return pruefeJreVersion(jrePfad.get(), texte);
             }
+            // LO-Config vorhanden aber kein JRE gesetzt: sdkman prüfen und ggf. eintragen
+            if (!System.getProperty("os.name", "").toLowerCase().contains("win")) {
+                var sdkmanPfad = ermittleSdkmanJavaPfad();
+                if (sdkmanPfad.isPresent()) {
+                    var ergebnis = pruefeJreVersion(sdkmanPfad.get(), texte);
+                    if (ergebnis.gefunden() && !ergebnis.hatWarnung()) {
+                        LibreOfficeJavaKonfigurierer.konfiguriereJava(
+                            sdkmanPfad.get(), ergebnis.version(), konfigPfad.get());
+                    }
+                    return ergebnis;
+                }
+            }
         }
         // Fallback: JAVA_HOME oder java im PATH (LO-Autoerkennung)
         return pruefeSystemJava(texte);
+    }
+
+    private static Optional<Path> ermittleSdkmanJavaPfad() {
+        var sdkmanBase = Path.of(System.getProperty("user.home"), ".sdkman", "candidates", "java");
+        if (!Files.isDirectory(sdkmanBase)) return Optional.empty();
+
+        // 1. current-Symlink (aktive sdkman-Version), Symlink auflösen
+        var current = sdkmanBase.resolve("current");
+        if (Files.isDirectory(current) && Files.isExecutable(current.resolve("bin").resolve("java"))) {
+            try {
+                return Optional.of(current.toRealPath());
+            } catch (IOException e) {
+                return Optional.of(current);
+            }
+        }
+
+        // 2. Exakter Bezeichner den der Installer installiert
+        var tem25 = sdkmanBase.resolve("25-tem");
+        if (Files.isDirectory(tem25) && Files.isExecutable(tem25.resolve("bin").resolve("java"))) {
+            return Optional.of(tem25);
+        }
+
+        // 3. Alle Verzeichnisse die mit "25" beginnen
+        try (Stream<Path> stream = Files.list(sdkmanBase)) {
+            return stream
+                .filter(p -> p.getFileName().toString().startsWith("25"))
+                .filter(Files::isDirectory)
+                .filter(p -> Files.isExecutable(p.resolve("bin").resolve("java")))
+                .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     private static PruefErgebnis pruefeSystemJava(ResourceBundle texte) {

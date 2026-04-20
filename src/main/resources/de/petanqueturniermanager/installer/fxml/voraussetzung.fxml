@@ -43,6 +43,7 @@
             <Label text="%voraussetzung.java.label" styleClass="status-label-bold"/>
             <Label fx:id="javaStatusText" wrapText="true" styleClass="status-detail" maxWidth="550"/>
             <Button fx:id="javaInstallierenButton" onAction="#onJavaInstallieren" visible="false" managed="false"/>
+            <Button text="%voraussetzung.java.info.button" onAction="#onJavaInfo"/>
         </VBox>
 
         <!-- libreoffice-java-common (nur Linux) -->
@@ -59,6 +60,7 @@
         <HBox.margin>
             <Insets top="30"/>
         </HBox.margin>
+        <Button fx:id="aktualisierenButton" text="%voraussetzung.aktualisieren.button" onAction="#onAktualisieren"/>
         <Button text="%nav.zurueck" onAction="#onZurueck"/>
         <Button fx:id="weiterButton" text="%nav.weiter" styleClass="button-primary"
                 onAction="#onWeiter" defaultButton="true"/>
