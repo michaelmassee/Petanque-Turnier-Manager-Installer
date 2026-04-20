@@ -1,0 +1,138 @@
+name: Build Installers
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+
+  # ── Linux ─────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build app-image
+        run: ./gradlew buildInstaller -PinstallerType=app-image
+
+      - name: Create AppDir
+        run: |
+          APP=build/distributions/PetanqueTurnierManager-Installer
+          APPDIR=build/AppDir
+
+          mkdir -p "$APPDIR/usr"
+          cp -r "$APP"/. "$APPDIR/usr/"
+
+          # AppRun
+          cat > "$APPDIR/AppRun" <<'EOF'
+          #!/bin/bash
+          exec "$APPDIR/usr/bin/PetanqueTurnierManager-Installer" "$@"
+          EOF
+          chmod +x "$APPDIR/AppRun"
+
+          # Icon
+          cp src/main/resources/de/petanqueturniermanager/installer/images/logo.png \
+             "$APPDIR/logo.png"
+
+          # Desktop-Datei
+          cat > "$APPDIR/PetanqueTurnierManager-Installer.desktop" <<'EOF'
+          [Desktop Entry]
+          Name=Pétanque Turnier Manager Installer
+          Exec=PetanqueTurnierManager-Installer
+          Icon=logo
+          Type=Application
+          Categories=Utility;
+          EOF
+
+      - name: Download appimagetool
+        run: |
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
+               -O /usr/local/bin/appimagetool
+          chmod +x /usr/local/bin/appimagetool
+
+      - name: Build AppImage
+        run: |
+          ARCH=x86_64 appimagetool build/AppDir \
+            build/distributions/PetanqueTurnierManager-Installer-linux.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-linux
+          path: build/distributions/PetanqueTurnierManager-Installer-linux.AppImage
+          if-no-files-found: error
+
+  # ── Windows ───────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Install WiX Toolset
+        run: choco install wixtoolset --no-progress -y
+        shell: pwsh
+
+      - name: Build exe
+        run: ./gradlew buildInstaller -PinstallerType=exe
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: build/distributions/*.exe
+          if-no-files-found: error
+
+  # ── macOS ─────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build dmg
+        run: ./gradlew buildInstaller -PinstallerType=dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-macos
+          path: build/distributions/*.dmg
+          if-no-files-found: error
+
+  # ── Release ───────────────────────────────────────────────────────────────
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
