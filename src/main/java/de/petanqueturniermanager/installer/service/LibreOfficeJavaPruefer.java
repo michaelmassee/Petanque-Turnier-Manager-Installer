@@ -34,16 +34,11 @@ public final class LibreOfficeJavaPruefer {
             if (jrePfad.isPresent()) {
                 return pruefeJreVersion(jrePfad.get(), texte);
             }
-            // LO-Config vorhanden aber kein JRE gesetzt: sdkman prüfen und ggf. eintragen
+            // LO-Config vorhanden aber kein JRE gesetzt: sdkman prüfen
             if (!System.getProperty("os.name", "").toLowerCase().contains("win")) {
                 var sdkmanPfad = ermittleSdkmanJavaPfad();
                 if (sdkmanPfad.isPresent()) {
-                    var ergebnis = pruefeJreVersion(sdkmanPfad.get(), texte);
-                    if (ergebnis.gefunden() && !ergebnis.hatWarnung()) {
-                        LibreOfficeJavaKonfigurierer.konfiguriereJava(
-                            sdkmanPfad.get(), ergebnis.version(), konfigPfad.get());
-                    }
-                    return ergebnis;
+                    return pruefeJreVersion(sdkmanPfad.get(), texte);
                 }
             }
         }
