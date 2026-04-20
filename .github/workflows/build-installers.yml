@@ -53,6 +53,9 @@ jobs:
           Categories=Utility;
           EOF
 
+      - name: Install FUSE
+        run: sudo apt-get install -y libfuse2
+
       - name: Download appimagetool
         run: |
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage \
