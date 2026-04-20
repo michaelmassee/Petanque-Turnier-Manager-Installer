@@ -123,8 +123,7 @@ tasks.register('jlinkImage') {
             layout.buildDirectory.dir('classes/java/main').get().asFile.absolutePath
         ].join(File.pathSeparator)
 
-        project.exec {
-            commandLine(
+        def exitCode = new ProcessBuilder(
                 "${javaHome}/bin/jlink",
                 '--module-path', modulePath,
                 '--add-modules', 'de.petanqueturniermanager.installer',
@@ -132,9 +131,9 @@ tasks.register('jlinkImage') {
                 '--strip-debug',
                 '--compress=2',
                 '--no-header-files',
-                '--no-man-pages'
-            )
-        }
+                '--no-man-pages')
+            .inheritIO().start().waitFor()
+        if (exitCode != 0) throw new GradleException("jlink fehlgeschlagen (Exit-Code $exitCode)")
     }
 }
 
@@ -173,6 +172,7 @@ tasks.register('buildInstaller') {
             args += ['--linux-shortcut', '--linux-app-category', 'Office']
         }
 
-        project.exec { commandLine args }
+        def exitCode = new ProcessBuilder(args).inheritIO().start().waitFor()
+        if (exitCode != 0) throw new GradleException("jpackage fehlgeschlagen (Exit-Code $exitCode)")
     }
 }
