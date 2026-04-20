@@ -6,6 +6,7 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.MessageFormat;
@@ -82,24 +83,30 @@ public final class LibreOfficeJavaPruefer {
 
     private static Optional<Path> ermittleKonfigPfad() {
         var os = System.getProperty("os.name", "").toLowerCase();
-        Path basisPfad;
+        Path configDir;
         if (os.contains("win")) {
             var appData = System.getenv("APPDATA");
-            if (appData == null) {
-                return Optional.empty();
-            }
-            basisPfad = Path.of(appData, "LibreOffice", "4", "user");
+            if (appData == null) return Optional.empty();
+            configDir = Path.of(appData, "LibreOffice", "4", "user", "config");
         } else if (os.contains("mac")) {
-            basisPfad = Path.of(
-                System.getProperty("user.home"),
-                "Library", "Application Support", "LibreOffice", "4", "user");
+            configDir = Path.of(System.getProperty("user.home"),
+                "Library", "Application Support", "LibreOffice", "4", "user", "config");
         } else {
-            basisPfad = Path.of(
-                System.getProperty("user.home"),
-                ".config", "libreoffice", "4", "user");
+            configDir = Path.of(System.getProperty("user.home"),
+                ".config", "libreoffice", "4", "user", "config");
         }
-        var konfigDatei = basisPfad.resolve("registrymodifications.xcu");
-        return Files.exists(konfigDatei) ? Optional.of(konfigDatei) : Optional.empty();
+        if (!Files.isDirectory(configDir)) return Optional.empty();
+        // Dateiname variiert je nach OS/Architektur: javasettings_Linux_X86_64.xml
+        try (var stream = Files.list(configDir)) {
+            return stream
+                .filter(p -> {
+                    var name = p.getFileName().toString();
+                    return name.startsWith("javasettings_") && name.endsWith(".xml");
+                })
+                .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     private static Optional<Path> leseJrePfadAusKonfig(Path konfigDatei) {
@@ -110,28 +117,19 @@ public final class LibreOfficeJavaPruefer {
             try (var is = Files.newInputStream(konfigDatei)) {
                 doc = builder.parse(is);
             }
-
-            NodeList items = doc.getElementsByTagName("item");
-            for (int i = 0; i < items.getLength(); i++) {
-                var item = (Element) items.item(i);
-                var pfadAttr = item.getAttribute("oor:path");
-                if (!pfadAttr.contains("/org.openoffice.Office.Java/VirtualMachine")) {
-                    continue;
-                }
-                NodeList props = item.getElementsByTagName("prop");
-                for (int j = 0; j < props.getLength(); j++) {
-                    var prop = (Element) props.item(j);
-                    if ("Path".equals(prop.getAttribute("oor:name"))) {
-                        NodeList values = prop.getElementsByTagName("value");
-                        if (values.getLength() > 0) {
-                            var wert = values.item(0).getTextContent().strip();
-                            if (!wert.isBlank()) {
-                                return Optional.of(Path.of(wert));
-                            }
-                        }
-                    }
-                }
+            // <javaInfo xsi:nil="false"> enthält die aktiv ausgewählte JVM
+            var javaInfoList = doc.getElementsByTagName("javaInfo");
+            if (javaInfoList.getLength() == 0) return Optional.empty();
+            var javaInfo = (Element) javaInfoList.item(0);
+            var xsiNs = "http://www.w3.org/2001/XMLSchema-instance";
+            if ("true".equalsIgnoreCase(javaInfo.getAttributeNS(xsiNs, "nil"))) {
+                return Optional.empty(); // keine JVM ausgewählt
             }
+            var locationList = javaInfo.getElementsByTagName("location");
+            if (locationList.getLength() == 0) return Optional.empty();
+            var locationUri = locationList.item(0).getTextContent().strip();
+            if (locationUri.isBlank()) return Optional.empty();
+            return Optional.of(Path.of(new URI(locationUri)));
         } catch (Exception e) {
             LOG.warning("Fehler beim Lesen der LO-Konfiguration: " + e.getMessage());
         }

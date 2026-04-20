@@ -21,6 +21,7 @@ javafx {
 application {
     mainModule = 'de.petanqueturniermanager.installer'
     mainClass  = 'de.petanqueturniermanager.installer.InstallerApp'
+    applicationDefaultJvmArgs = ['--enable-native-access=javafx.graphics']
 }
 
 repositories {
@@ -75,6 +76,7 @@ tasks.register('copyOxt', Copy) {
     from("${hauptprojektDir}/build/distributions") { include '*.oxt' }
     into oxtResDir
     rename { 'extension.oxt' }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.register('copyLogo', Copy) {
