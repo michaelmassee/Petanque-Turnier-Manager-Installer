@@ -1,0 +1,176 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group   = 'de.petanqueturniermanager'
+version = ptmVersion
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+javafx {
+    version = '25'
+    modules = ['javafx.controls', 'javafx.fxml', 'javafx.graphics']
+}
+
+application {
+    mainModule = 'de.petanqueturniermanager.installer'
+    mainClass  = 'de.petanqueturniermanager.installer.InstallerApp'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.14.3'
+    testImplementation 'org.assertj:assertj-core:3.27.6'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// JavaFX-JARs explizit auf den Modulpfad setzen (org.openjfx.javafxplugin 0.1.0
+// konfiguriert dies nur für JavaExec, nicht für compileJava)
+compileJava {
+    doFirst {
+        options.compilerArgs += [
+            '--module-path', classpath.asPath,
+        ]
+        classpath = files()
+    }
+}
+
+// Tests im unnamed module – Modulpfad explizit setzen und Modul öffnen
+compileTestJava {
+    doFirst {
+        options.compilerArgs += [
+            '--module-path', classpath.asPath,
+            '--add-modules', 'ALL-MODULE-PATH',
+        ]
+        classpath = files()
+    }
+}
+
+// Test-Ausführung: normaler Classpath-Modus (JUnit-Launcher benötigt Classpath)
+test {
+    useJUnitPlatform()
+}
+
+// OXT + Logo aus dem Hauptprojekt in die Ressourcen kopieren
+def hauptprojektDir    = file("../Petanque-Turnier-Manager")
+def oxtResDir          = 'src/main/resources/de/petanqueturniermanager/installer/oxt'
+def imagesResDir       = 'src/main/resources/de/petanqueturniermanager/installer/images'
+
+tasks.register('copyOxt', Copy) {
+    group       = 'build'
+    description = 'Kopiert die OXT-Datei aus dem Hauptprojekt'
+    from("${hauptprojektDir}/build/distributions") { include '*.oxt' }
+    into oxtResDir
+    rename { 'extension.oxt' }
+}
+
+tasks.register('copyLogo', Copy) {
+    group       = 'build'
+    description = 'Kopiert das Logo aus dem Hauptprojekt'
+    from("${hauptprojektDir}/images") { include 'petanqueturniermanager-logo-256px.png' }
+    into imagesResDir
+    rename { 'logo.png' }
+}
+
+processResources.dependsOn copyOxt, copyLogo
+
+// jlink – minimales Runtime-Image
+def runtimeImageDir  = layout.buildDirectory.dir('runtime-image')
+def distributionsDir = layout.buildDirectory.dir('distributions')
+
+def javaLauncher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(25)
+}
+
+def javaHomePfad = javaLauncher.map { launcher ->
+    launcher.executablePath.asFile.parentFile.parentFile.absolutePath
+}
+
+tasks.register('jlinkImage') {
+    group       = 'distribution'
+    description = 'Erstellt minimales JRE-Image via jlink'
+    dependsOn assemble
+
+    inputs.files configurations.runtimeClasspath
+    outputs.dir runtimeImageDir
+
+    doFirst {
+        def outputDir = runtimeImageDir.get().asFile
+        if (outputDir.exists()) {
+            outputDir.deleteDir()
+        }
+    }
+
+    doLast {
+        def javaHome   = javaHomePfad.get()
+        def modulePath = [
+            configurations.runtimeClasspath.asPath,
+            layout.buildDirectory.dir('classes/java/main').get().asFile.absolutePath
+        ].join(File.pathSeparator)
+
+        project.exec {
+            commandLine(
+                "${javaHome}/bin/jlink",
+                '--module-path', modulePath,
+                '--add-modules', 'de.petanqueturniermanager.installer',
+                '--output', runtimeImageDir.get().asFile.absolutePath,
+                '--strip-debug',
+                '--compress=2',
+                '--no-header-files',
+                '--no-man-pages'
+            )
+        }
+    }
+}
+
+// jpackage – nativen Installer erzeugen
+tasks.register('buildInstaller') {
+    group       = 'distribution'
+    description = 'Erzeugt nativen Installer (deb/rpm/msi/dmg) via jpackage'
+    dependsOn jlinkImage
+
+    doFirst {
+        distributionsDir.get().asFile.mkdirs()
+    }
+
+    doLast {
+        def javaHome      = javaHomePfad.get()
+        def os            = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+        def installerType = (project.findProperty('installerType') as String)
+            ?: (os.contains('linux') ? 'deb'
+                : os.contains('win') ? 'msi'
+                : os.contains('mac') ? 'dmg'
+                : 'app-image')
+
+        def args = [
+            "${javaHome}/bin/jpackage",
+            '--type', installerType,
+            '--name', 'PetanqueTurnierManager-Installer',
+            '--app-version', version as String,
+            '--runtime-image', runtimeImageDir.get().asFile.absolutePath,
+            '--module', 'de.petanqueturniermanager.installer/de.petanqueturniermanager.installer.InstallerApp',
+            '--dest', distributionsDir.get().asFile.absolutePath,
+            '--description', 'Pétanque Turnier Manager – LibreOffice Extension Installer',
+            '--vendor', 'Michael Massee'
+        ]
+
+        if (installerType == 'deb' || installerType == 'rpm') {
+            args += ['--linux-shortcut', '--linux-app-category', 'Office']
+        }
+
+        project.exec { commandLine args }
+    }
+}

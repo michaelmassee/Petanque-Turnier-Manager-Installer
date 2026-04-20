@@ -1,0 +1,113 @@
+/* Basis */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-base: #f4f4f4;
+    -fx-background: #f4f4f4;
+}
+
+/* Header */
+.header-box {
+    -fx-background-color: #1a6b3a;
+    -fx-padding: 14 24 14 24;
+}
+.header-titel {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* Screen-Inhalte */
+.screen-box {
+    -fx-background-color: white;
+    -fx-padding: 20;
+}
+.screen-titel {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1a6b3a;
+}
+.screen-untertitel {
+    -fx-font-size: 14px;
+    -fx-text-fill: #444;
+}
+.screen-version {
+    -fx-font-size: 12px;
+    -fx-text-fill: #888;
+}
+.screen-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #333;
+}
+
+/* Status-Symbole */
+.status-symbol {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-min-width: 30px;
+}
+.status-symbol-gross {
+    -fx-font-size: 48px;
+    -fx-font-weight: bold;
+}
+.status-label-bold {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+.status-detail {
+    -fx-text-fill: #555;
+    -fx-font-size: 12px;
+}
+
+/* CSS-Klassen für Zustände */
+.css-ok {
+    -fx-text-fill: #1a6b3a;
+}
+.css-warnung {
+    -fx-text-fill: #e67e00;
+}
+.css-fehler {
+    -fx-text-fill: #c0392b;
+}
+
+/* Fehler-Box */
+.fehler-box {
+    -fx-background-color: #fdecea;
+    -fx-border-color: #c0392b;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-padding: 12;
+}
+.fehler-text {
+    -fx-text-fill: #c0392b;
+    -fx-font-size: 12px;
+}
+
+/* Log-Ausgabe */
+.log-ausgabe {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 11px;
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #d4d4d4;
+    -fx-control-inner-background: #1e1e1e;
+}
+.log-ausgabe .content {
+    -fx-background-color: #1e1e1e;
+}
+
+/* Buttons */
+.button-primary {
+    -fx-background-color: #1a6b3a;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8 24 8 24;
+    -fx-cursor: hand;
+}
+.button-primary:hover {
+    -fx-background-color: #145a2f;
+}
+.button-primary:disabled {
+    -fx-background-color: #aaa;
+    -fx-opacity: 0.7;
+}
