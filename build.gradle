@@ -172,7 +172,7 @@ tasks.register('buildInstaller') {
             args += ['--linux-shortcut', '--linux-app-category', 'Office']
         }
 
-        def exitCode = new ProcessBuilder(args).inheritIO().start().waitFor()
+        def exitCode = new ProcessBuilder(args.collect { it as String }).inheritIO().start().waitFor()
         if (exitCode != 0) throw new GradleException("jpackage fehlgeschlagen (Exit-Code $exitCode)")
     }
 }
