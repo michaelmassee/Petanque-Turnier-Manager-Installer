@@ -70,15 +70,11 @@ def hauptprojektDir    = file(project.findProperty('hauptprojektDir') ?: "../Pet
 def oxtResDir          = 'src/main/resources/de/petanqueturniermanager/installer/oxt'
 def imagesResDir       = 'src/main/resources/de/petanqueturniermanager/installer/images'
 
-def pluginVersion = new groovy.xml.XmlSlurper(false, false)
-    .parse(file("${hauptprojektDir}/description.xml"))
-    .version.@value.text()
-
 tasks.register('copyOxt', Copy) {
     group       = 'build'
     description = 'Kopiert die OXT-Datei aus dem Hauptprojekt'
     from("${hauptprojektDir}/build/distributions") {
-        include "PetanqueTurnierManager-${pluginVersion}.oxt"
+        include "PetanqueTurnierManager-${version}.oxt"
     }
     into oxtResDir
     rename { 'extension.oxt' }
