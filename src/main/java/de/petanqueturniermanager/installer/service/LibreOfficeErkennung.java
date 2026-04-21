@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 public final class LibreOfficeErkennung {
@@ -44,8 +45,12 @@ public final class LibreOfficeErkennung {
             var prozess = new ProcessBuilder(suchbefehl)
                 .redirectErrorStream(true)
                 .start();
+            if (!prozess.waitFor(10, TimeUnit.SECONDS)) {
+                prozess.destroyForcibly();
+                return Optional.empty();
+            }
             var ausgabe = new String(prozess.getInputStream().readAllBytes()).strip();
-            if (prozess.waitFor() == 0 && !ausgabe.isBlank()) {
+            if (prozess.exitValue() == 0 && !ausgabe.isBlank()) {
                 var pfad = Path.of(ausgabe);
                 if (Files.isExecutable(pfad)) {
                     LOG.info("unopkg über PATH gefunden: " + pfad);

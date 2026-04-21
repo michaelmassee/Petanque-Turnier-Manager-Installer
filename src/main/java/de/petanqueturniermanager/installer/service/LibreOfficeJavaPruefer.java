@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
@@ -99,8 +100,11 @@ public final class LibreOfficeJavaPruefer {
                     "-version")
                 .redirectErrorStream(true)
                 .start();
+            if (!prozess.waitFor(10, TimeUnit.SECONDS)) {
+                prozess.destroyForcibly();
+                return PruefErgebnis.nichtGefunden(texte.getString("voraussetzung.java.kein.jre"));
+            }
             var ausgabe = new String(prozess.getInputStream().readAllBytes()).strip();
-            prozess.waitFor();
 
             if (ausgabe.isBlank()) {
                 return PruefErgebnis.nichtGefunden(
@@ -190,8 +194,13 @@ public final class LibreOfficeJavaPruefer {
             var prozess = new ProcessBuilder(javaExe.toString(), "-version")
                 .redirectErrorStream(true)
                 .start();
+            if (!prozess.waitFor(10, TimeUnit.SECONDS)) {
+                prozess.destroyForcibly();
+                return PruefErgebnis.nichtGefunden(
+                    MessageFormat.format(texte.getString("voraussetzung.java.version.fehler"),
+                        "timeout"));
+            }
             var ausgabe = new String(prozess.getInputStream().readAllBytes()).strip();
-            prozess.waitFor();
 
             var version = extrahiereVersion(ausgabe);
             var major   = extrahiereMajor(version);

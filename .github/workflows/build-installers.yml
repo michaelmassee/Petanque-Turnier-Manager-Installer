@@ -93,14 +93,14 @@ jobs:
         run: choco install wixtoolset --no-progress -y
         shell: pwsh
 
-      - name: Build exe
-        run: ./gradlew buildInstaller -PinstallerType=exe
+      - name: Build msi
+        run: ./gradlew buildInstaller -PinstallerType=msi
         shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/distributions/*.exe
+          path: build/distributions/*.msi
           if-no-files-found: error
 
   # ── macOS ─────────────────────────────────────────────────────────────────
