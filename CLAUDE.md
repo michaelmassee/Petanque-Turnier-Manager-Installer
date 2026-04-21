@@ -24,8 +24,9 @@ JavaFX-Installations-Wizard (Version aus `gradle.properties`) für das LibreOffi
 # Minimales JRE-Image erstellen (jlink)
 ./gradlew jlinkImage
 
-# Nativen Installer erstellen (deb/rpm/msi/dmg via jpackage)
-./gradlew buildInstaller
+# Distributionspakete erstellen (jpackage)
+./gradlew buildInstaller                        # lokal: app-image (Standard)
+./gradlew buildAllGithubKopieNachTransfer       # GitHub-CI triggern, alle 3 Plattformen nach ~/Transfer laden
 ```
 
 **Voraussetzung:** Java 25 Toolchain (wird von Gradle automatisch heruntergeladen falls nicht vorhanden).
@@ -68,6 +69,17 @@ I/O-lastige Operationen (System-Checks, Prozessaufrufe) laufen auf **Virtual Thr
 ### Lokalisierung
 
 Resource Bundle `messages.properties` unter `src/main/resources/.../i18n/`. Drei Sprachen: Deutsch (default), Englisch (`_en`), Französisch (`_fr`). Locale wird in `InstallerApp` beim Start gebunden.
+
+## Distributions-Strategie (wichtig!)
+
+Der Wizard ist ein **einmaliges Ausführ-Programm** – er installiert nur das LibreOffice-Plugin und braucht selbst **keine Windows-Systeminstallation**.
+
+- **Kein MSI, kein WiX, kein Systemregistrierungseintrag** für Windows.
+- Windows: `app-image` als ZIP → entpacken → `bin\PetanqueTurnierManager-Installer.exe` starten.
+- Linux: AppImage (selbstständig ausführbar).
+- macOS: DMG.
+
+Niemals `--type exe` oder `--type msi` für den Windows-Build vorschlagen – das erzeugt einen System-Installer (WiX-Bootstrapper bzw. MSI), der UAC benötigt und einen Registry-Eintrag anlegt.
 
 ### Modulystem
 
