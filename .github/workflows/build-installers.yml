@@ -89,21 +89,18 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image
-        shell: bash
-
-      - name: Zip app-image
-        run: |
-          cd build/distributions
-          powershell Compress-Archive -Path PetanqueTurnierManager-Installer `
-            -DestinationPath PetanqueTurnierManager-Installer-windows.zip
+      - name: Install WiX Toolset
+        run: choco install wixtoolset --no-progress -y
         shell: pwsh
+
+      - name: Build exe
+        run: ./gradlew buildInstaller -PinstallerType=exe
+        shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/distributions/PetanqueTurnierManager-Installer-windows.zip
+          path: build/distributions/*.exe
           if-no-files-found: error
 
   # ── macOS ─────────────────────────────────────────────────────────────────
