@@ -60,24 +60,36 @@ public final class WizardController {
     }
 
     private void ladeScreen(String fxmlDatei) {
+        InstallerApp.dbg("ladeScreen: " + fxmlDatei);
         try {
-            var loader = new FXMLLoader(
-                getClass().getResource(FXML_BASIS + fxmlDatei),
-                texte);
+            var url = getClass().getResource(FXML_BASIS + fxmlDatei);
+            InstallerApp.dbg("FXML-URL: " + url);
+            if (url == null) throw new IOException("FXML-Ressource nicht gefunden: " + FXML_BASIS + fxmlDatei);
+            var loader = new FXMLLoader(url, texte);
             loader.setControllerFactory(this::erstelleController);
+            InstallerApp.dbg("FXMLLoader.load(): " + fxmlDatei + " ...");
             Node screen = loader.load();
+            InstallerApp.dbg("FXMLLoader.load() OK: " + fxmlDatei);
             hauptLayout.setCenter(screen);
+            InstallerApp.dbg("setCenter() OK: " + fxmlDatei);
         } catch (IOException e) {
+            InstallerApp.dbg("FEHLER beim Laden von " + fxmlDatei + ": " + e);
+            e.printStackTrace(System.err);
             LOG.severe("FXML konnte nicht geladen werden: " + fxmlDatei + " – " + e.getMessage());
             throw new IllegalStateException("Interner Fehler: " + fxmlDatei, e);
         }
     }
 
     private Object erstelleController(Class<?> typ) {
+        InstallerApp.dbg("erstelleController: " + typ.getName());
         try {
             var konstruktor = typ.getConstructor(WizardController.class);
-            return konstruktor.newInstance(this);
+            var ctrl = konstruktor.newInstance(this);
+            InstallerApp.dbg("Controller erstellt: " + typ.getSimpleName());
+            return ctrl;
         } catch (Exception e) {
+            InstallerApp.dbg("FEHLER Controller " + typ.getName() + ": " + e);
+            e.printStackTrace(System.err);
             throw new IllegalStateException(
                 "Controller konnte nicht erstellt werden: " + typ.getName(), e);
         }

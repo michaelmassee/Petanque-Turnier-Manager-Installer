@@ -1,5 +1,6 @@
 package de.petanqueturniermanager.installer.controller;
 
+import de.petanqueturniermanager.installer.InstallerApp;
 import de.petanqueturniermanager.installer.WizardController;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
@@ -19,14 +20,19 @@ public final class WillkommenController {
 
     @FXML
     private void initialize() {
+        InstallerApp.dbg("WillkommenController.initialize() ...");
         var logoUrl = getClass().getResource(
             "/de/petanqueturniermanager/installer/images/logo.png");
+        InstallerApp.dbg("logoUrl = " + logoUrl);
         if (logoUrl != null) {
             logoBild.setImage(new Image(logoUrl.toString()));
         }
+        var version = holeVersion();
+        InstallerApp.dbg("version = " + version);
         versionLabel.setText(
             java.text.MessageFormat.format(
-                wizard.getTexte().getString("willkommen.version"), holeVersion()));
+                wizard.getTexte().getString("willkommen.version"), version));
+        InstallerApp.dbg("WillkommenController.initialize() OK");
     }
 
     @FXML
