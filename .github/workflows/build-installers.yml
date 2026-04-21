@@ -23,16 +23,22 @@ jobs:
           path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
+      - name: Download OXT from main project release
+        env:
+          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
+        run: |
+          mkdir -p Petanque-Turnier-Manager/build/distributions
+          gh release download "$GITHUB_REF_NAME" \
+            --repo michaelmassee/Petanque-Turnier-Manager \
+            --pattern "*.oxt" \
+            --dir Petanque-Turnier-Manager/build/distributions
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
 
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Build OXT
-        working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
 
       - name: Build app-image
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
@@ -98,17 +104,23 @@ jobs:
           path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
+      - name: Download OXT from main project release
+        env:
+          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
+        run: |
+          mkdir -p Petanque-Turnier-Manager/build/distributions
+          gh release download "$GITHUB_REF_NAME" \
+            --repo michaelmassee/Petanque-Turnier-Manager \
+            --pattern "*.oxt" \
+            --dir Petanque-Turnier-Manager/build/distributions
+        shell: bash
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
 
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Build OXT
-        working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
-        shell: bash
 
       - name: Build app-image
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
@@ -139,16 +151,22 @@ jobs:
           path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
+      - name: Download OXT from main project release
+        env:
+          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
+        run: |
+          mkdir -p Petanque-Turnier-Manager/build/distributions
+          gh release download "$GITHUB_REF_NAME" \
+            --repo michaelmassee/Petanque-Turnier-Manager \
+            --pattern "*.oxt" \
+            --dir Petanque-Turnier-Manager/build/distributions
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '25'
 
       - uses: gradle/actions/setup-gradle@v4
-
-      - name: Build OXT
-        working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
 
       - name: Build dmg
         run: ./gradlew buildInstaller -PinstallerType=dmg -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
