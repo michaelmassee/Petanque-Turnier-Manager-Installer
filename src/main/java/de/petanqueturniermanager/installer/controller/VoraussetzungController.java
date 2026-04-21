@@ -161,7 +161,7 @@ public final class VoraussetzungController {
     private void onJavaInstallieren() {
         if (LinuxPaketPruefer.istWindows()) {
             try {
-                Desktop.getDesktop().browse(new URI("https://adoptium.net/temurin/releases/?version=25"));
+                Desktop.getDesktop().browse(new URI("https://adoptium.net/temurin"));
             } catch (Exception e) {
                 LOG.warning("Browser öffnen fehlgeschlagen: " + e.getMessage());
             }

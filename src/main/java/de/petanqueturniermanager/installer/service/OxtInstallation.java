@@ -54,6 +54,7 @@ public final class OxtInstallation {
         try {
             var prozess = new ProcessBuilder(
                 unopkgPfad.toString(), "add", "--force", oxtPfad.toString())
+                .directory(unopkgPfad.getParent().toFile())
                 .redirectErrorStream(true)
                 .start();
 

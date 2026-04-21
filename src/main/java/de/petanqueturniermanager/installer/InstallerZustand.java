@@ -54,6 +54,8 @@ public final class InstallerZustand {
     }
 
     public boolean kannInstallieren() {
-        return unopkgPfad != null && loJavaCommonOk;
+        if (unopkgPfad == null || !loJavaCommonOk) return false;
+        if (javaPruefErgebnis == null) return false;
+        return javaPruefErgebnis.gefunden() && !javaPruefErgebnis.hatWarnung();
     }
 }
