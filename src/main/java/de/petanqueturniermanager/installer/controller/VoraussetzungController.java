@@ -56,6 +56,7 @@ public final class VoraussetzungController {
     private void fuehrePruefungDurch() {
         var texte = wizard.getTexte();
         Thread.ofVirtual().start(() -> {
+            try {
             var unopkg     = LibreOfficeErkennung.findeUnopkg();
             var javaPruef  = LibreOfficeJavaPruefer.pruefeJavaVersion(texte);
             var paketPruef = LinuxPaketPruefer.pruefePaket(texte);
@@ -141,6 +142,10 @@ public final class VoraussetzungController {
                 aktualisierenButton.setDisable(false);
                 weiterButton.setDisable(!wizard.getZustand().kannInstallieren());
             });
+            } catch (Exception e) {
+                LOG.severe("Prüfung fehlgeschlagen: " + e.getMessage());
+                Platform.runLater(() -> ladeAnzeige.setVisible(false));
+            }
         });
     }
 

@@ -161,6 +161,7 @@ tasks.register('buildInstaller') {
             '--app-version', version as String,
             '--runtime-image', runtimeImageDir.get().asFile.absolutePath,
             '--module', 'de.petanqueturniermanager.installer/de.petanqueturniermanager.installer.InstallerApp',
+            '--java-options', '--enable-native-access=javafx.graphics',
             '--dest', distributionsDir.get().asFile.absolutePath,
             '--description', 'Pétanque Turnier Manager – LibreOffice Extension Installer',
             '--vendor', 'Michael Massee'
@@ -168,5 +169,74 @@ tasks.register('buildInstaller') {
 
 def exitCode = new ProcessBuilder(args.collect { it as String }).inheritIO().start().waitFor()
         if (exitCode != 0) throw new GradleException("jpackage fehlgeschlagen (Exit-Code $exitCode)")
+    }
+}
+
+// GitHub-Actions-Workflow starten, warten und die 3 Installer nach ~/Transfer laden
+tasks.register('buildAll') {
+    group       = 'distribution'
+    description = 'GitHub-Workflow triggern, auf alle 3 Installer warten und nach ~/Transfer laden'
+
+    doLast {
+        def transferDir = new File(System.getProperty("user.home"), "Transfer")
+        transferDir.mkdirs()
+
+        // Aktuellen Branch ermitteln
+        def branchProc = new ProcessBuilder('git', 'rev-parse', '--abbrev-ref', 'HEAD')
+            .redirectErrorStream(true).start()
+        def branch = branchProc.inputStream.text.trim()
+        branchProc.waitFor()
+        if (!branch) throw new GradleException("Branch konnte nicht ermittelt werden")
+        logger.lifecycle("Branch: $branch")
+
+        // Workflow starten
+        logger.lifecycle("Starte GitHub-Actions-Workflow 'build-installers.yml' ...")
+        def triggerExit = new ProcessBuilder(
+                'gh', 'workflow', 'run', 'build-installers.yml', '--ref', branch)
+            .inheritIO().start().waitFor()
+        if (triggerExit != 0) throw new GradleException("Workflow-Start fehlgeschlagen")
+
+        // Kurz warten bis GitHub den Run registriert hat
+        Thread.sleep(6000)
+
+        // Run-ID des soeben gestarteten Runs ermitteln
+        def runIdProc = new ProcessBuilder(
+                'gh', 'run', 'list',
+                '--workflow', 'build-installers.yml',
+                '--branch', branch,
+                '--limit', '1',
+                '--json', 'databaseId',
+                '--jq', '.[0].databaseId')
+            .redirectErrorStream(true).start()
+        def runId = runIdProc.inputStream.text.trim()
+        runIdProc.waitFor()
+        if (!runId) throw new GradleException("Run-ID konnte nicht ermittelt werden")
+        logger.lifecycle("Run-ID: $runId – warte auf Abschluss (kann mehrere Minuten dauern) ...")
+
+        // Auf erfolgreichen Abschluss aller 3 Jobs warten
+        def watchExit = new ProcessBuilder('gh', 'run', 'watch', runId, '--exit-status')
+            .inheritIO().start().waitFor()
+        if (watchExit != 0) throw new GradleException("Workflow fehlgeschlagen (Run $runId)")
+
+        // Artefakte in temporäres Verzeichnis laden und dann flach nach ~/Transfer kopieren
+        def tmpDir = File.createTempDir('ptm-artifacts-', '')
+        try {
+            def dlExit = new ProcessBuilder(
+                    'gh', 'run', 'download', runId, '--dir', tmpDir.absolutePath)
+                .inheritIO().start().waitFor()
+            if (dlExit != 0) throw new GradleException("Artefakt-Download fehlgeschlagen")
+
+            // Unterverzeichnisse (installer-linux / installer-windows / installer-macos) flach kopieren
+            project.copy {
+                from project.fileTree(tmpDir) { include '**/*.*' }
+                into transferDir
+                eachFile { fcd -> fcd.path = fcd.file.name }
+                includeEmptyDirs false
+            }
+        } finally {
+            tmpDir.deleteDir()
+        }
+
+        logger.lifecycle("Fertig – 3 Installer in ${transferDir.absolutePath}")
     }
 }
