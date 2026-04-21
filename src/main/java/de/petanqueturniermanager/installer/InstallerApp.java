@@ -7,6 +7,10 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.time.LocalTime;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -22,6 +26,11 @@ public final class InstallerApp extends Application {
     private static final Set<String> UNTERSTUETZTE_SPRACHEN = Set.of("de", "en", "fr", "nl", "es");
     private static final int FENSTER_BREITE = 800;
     private static final int FENSTER_HOEHE  = 580;
+
+    // Logdatei im Home-Verzeichnis – immer schreibbar, unabhängig von --win-console
+    private static PrintWriter logWriter;
+    private static final String LOG_DATEI =
+        Path.of(System.getProperty("user.home"), "ptm-debug.log").toString();
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -67,7 +76,6 @@ public final class InstallerApp extends Application {
         dbg("logoUrl = " + logoUrl);
         if (logoUrl != null) {
             primaryStage.getIcons().add(new Image(logoUrl.toString()));
-            dbg("Logo gesetzt");
         }
 
         dbg("Stage konfigurieren ...");
@@ -85,13 +93,16 @@ public final class InstallerApp extends Application {
     }
 
     public static void main(String[] args) {
+        oeffneLogdatei();
         konfiguriereLogs();
         dbg("=== InstallerApp startet ===");
+        dbg("log.datei         = " + LOG_DATEI);
         dbg("java.version      = " + System.getProperty("java.version"));
         dbg("java.home         = " + System.getProperty("java.home"));
         dbg("os.name           = " + System.getProperty("os.name"));
         dbg("os.arch           = " + System.getProperty("os.arch"));
         dbg("user.dir          = " + System.getProperty("user.dir"));
+        dbg("user.home         = " + System.getProperty("user.home"));
         dbg("javafx.version    = " + System.getProperty("javafx.version", "(unbekannt)"));
         try {
             dbg("Application.launch() ...");
@@ -100,32 +111,48 @@ public final class InstallerApp extends Application {
         } catch (Throwable t) {
             dbg("FEHLER in launch(): " + t);
             t.printStackTrace(System.err);
+            if (logWriter != null) t.printStackTrace(logWriter);
+        } finally {
+            dbg("=== InstallerApp Ende ===");
+            schliesseLogdatei();
         }
-        dbg("=== InstallerApp Ende ===");
     }
 
-    // Gibt Nachricht auf System.out aus – sichtbar wenn --win-console aktiv
+    /** Auf System.out UND in ~/ptm-debug.log schreiben */
     public static void dbg(String msg) {
-        System.out.println("[PTM] " + msg);
+        var line = "[PTM " + LocalTime.now().withNano(0) + "] " + msg;
+        System.out.println(line);
         System.out.flush();
-        LOG.info(msg);
+        if (logWriter != null) {
+            logWriter.println(line);
+            logWriter.flush();
+        }
+    }
+
+    private static void oeffneLogdatei() {
+        try {
+            logWriter = new PrintWriter(new FileWriter(LOG_DATEI, false));
+        } catch (Exception e) {
+            System.err.println("Logdatei konnte nicht geöffnet werden: " + LOG_DATEI + " – " + e);
+        }
+    }
+
+    private static void schliesseLogdatei() {
+        if (logWriter != null) { logWriter.flush(); logWriter.close(); }
     }
 
     private static void konfiguriereLogs() {
         System.setProperty("java.util.logging.SimpleFormatter.format",
             "[%1$tT] %4$s %2$s – %5$s%n");
         var rootLogger = Logger.getLogger("");
-        rootLogger.setLevel(Level.ALL);
-        for (var h : rootLogger.getHandlers()) {
-            rootLogger.removeHandler(h);
-        }
-        // StreamHandler(System.out) statt ConsoleHandler – setOutputStream() ist protected
+        rootLogger.setLevel(Level.WARNING);
+        for (var h : rootLogger.getHandlers()) rootLogger.removeHandler(h);
         var handler = new StreamHandler(System.out, new SimpleFormatter()) {
             @Override public synchronized void publish(java.util.logging.LogRecord r) {
                 super.publish(r); flush();
             }
         };
-        handler.setLevel(Level.ALL);
+        handler.setLevel(Level.WARNING);
         rootLogger.addHandler(handler);
     }
 }
