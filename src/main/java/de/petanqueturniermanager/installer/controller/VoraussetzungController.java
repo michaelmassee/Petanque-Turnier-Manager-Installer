@@ -1,6 +1,5 @@
 package de.petanqueturniermanager.installer.controller;
 
-import de.petanqueturniermanager.installer.InstallerApp;
 import de.petanqueturniermanager.installer.WizardController;
 import de.petanqueturniermanager.installer.service.JavaInstallationsHelfer;
 import de.petanqueturniermanager.installer.service.LibreOfficeErkennung;
@@ -49,27 +48,18 @@ public final class VoraussetzungController {
 
     @FXML
     private void initialize() {
-        InstallerApp.dbg("VoraussetzungController.initialize() ...");
         weiterButton.setDisable(true);
         ladeAnzeige.setVisible(true);
         fuehrePruefungDurch();
-        InstallerApp.dbg("VoraussetzungController.initialize() OK – Prüfung läuft im Hintergrund");
     }
 
     private void fuehrePruefungDurch() {
-        InstallerApp.dbg("fuehrePruefungDurch() – starte Virtual Thread ...");
         var texte = wizard.getTexte();
         Thread.ofVirtual().start(() -> {
             try {
-            InstallerApp.dbg("[VT] LibreOfficeErkennung.findeUnopkg() ...");
             var unopkg     = LibreOfficeErkennung.findeUnopkg();
-            InstallerApp.dbg("[VT] unopkg = " + unopkg);
-            InstallerApp.dbg("[VT] LibreOfficeJavaPruefer.pruefeJavaVersion() ...");
             var javaPruef  = LibreOfficeJavaPruefer.pruefeJavaVersion(texte);
-            InstallerApp.dbg("[VT] javaPruef = gefunden=" + javaPruef.gefunden() + " version=" + javaPruef.version());
-            InstallerApp.dbg("[VT] LinuxPaketPruefer.pruefePaket() ...");
             var paketPruef = LinuxPaketPruefer.pruefePaket(texte);
-            InstallerApp.dbg("[VT] paketPruef = gefunden=" + paketPruef.gefunden());
 
             Platform.runLater(() -> {
                 ladeAnzeige.setVisible(false);
