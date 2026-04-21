@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
-          path: ../Petanque-Turnier-Manager
+          path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - uses: actions/setup-java@v4
@@ -31,11 +31,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build OXT
-        working-directory: ../Petanque-Turnier-Manager
+        working-directory: Petanque-Turnier-Manager
         run: ./gradlew buildOXT
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
 
       - name: Create AppDir
         run: |
@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
-          path: ../Petanque-Turnier-Manager
+          path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - uses: actions/setup-java@v4
@@ -106,12 +106,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build OXT
-        working-directory: ../Petanque-Turnier-Manager
+        working-directory: Petanque-Turnier-Manager
         run: ./gradlew buildOXT
         shell: bash
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
         shell: bash
 
       - name: Zip app-image
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
-          path: ../Petanque-Turnier-Manager
+          path: Petanque-Turnier-Manager
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - uses: actions/setup-java@v4
@@ -147,11 +147,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build OXT
-        working-directory: ../Petanque-Turnier-Manager
+        working-directory: Petanque-Turnier-Manager
         run: ./gradlew buildOXT
 
       - name: Build dmg
-        run: ./gradlew buildInstaller -PinstallerType=dmg
+        run: ./gradlew buildInstaller -PinstallerType=dmg -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
 
       - uses: actions/upload-artifact@v4
         with:

@@ -66,7 +66,7 @@ test {
 }
 
 // OXT + Logo aus dem Hauptprojekt in die Ressourcen kopieren
-def hauptprojektDir    = file("../Petanque-Turnier-Manager")
+def hauptprojektDir    = file(project.findProperty('hauptprojektDir') ?: "../Petanque-Turnier-Manager")
 def oxtResDir          = 'src/main/resources/de/petanqueturniermanager/installer/oxt'
 def imagesResDir       = 'src/main/resources/de/petanqueturniermanager/installer/images'
 
