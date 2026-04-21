@@ -10,10 +10,10 @@ import javafx.stage.Stage;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import java.util.logging.StreamHandler;
 
 public final class InstallerApp extends Application {
 
@@ -119,10 +119,13 @@ public final class InstallerApp extends Application {
         for (var h : rootLogger.getHandlers()) {
             rootLogger.removeHandler(h);
         }
-        var handler = new ConsoleHandler();
+        // StreamHandler(System.out) statt ConsoleHandler – setOutputStream() ist protected
+        var handler = new StreamHandler(System.out, new SimpleFormatter()) {
+            @Override public synchronized void publish(java.util.logging.LogRecord r) {
+                super.publish(r); flush();
+            }
+        };
         handler.setLevel(Level.ALL);
-        handler.setFormatter(new SimpleFormatter());
-        handler.setOutputStream(System.out);
         rootLogger.addHandler(handler);
     }
 }
