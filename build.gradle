@@ -166,13 +166,19 @@ tasks.register('buildInstaller') {
             '--description', 'Pétanque Turnier Manager – LibreOffice Extension Installer',
             '--vendor', 'Michael Massee'
         ]
+        if (installerType == 'exe' || installerType == 'msi') {
+            // Feste UUID: Windows erkennt alle Versionen als dasselbe Produkt (Upgrade statt Neuinstallation)
+            args += ['--win-upgrade-uuid', 'A3C7F2E1-5B9D-4E8A-B6C3-1D2F8E4A0C5B']
+            // Per-User-Installation: kein UAC nötig, installiert nach %LOCALAPPDATA%
+            args += ['--win-per-user-install']
+        }
 def exitCode = new ProcessBuilder(args.collect { it as String }).inheritIO().start().waitFor()
         if (exitCode != 0) throw new GradleException("jpackage fehlgeschlagen (Exit-Code $exitCode)")
     }
 }
 
 // GitHub-Actions-Workflow starten, warten und die 3 Installer nach ~/Transfer laden
-tasks.register('buildAll') {
+tasks.register('buildAllGithubKopieNachTransfer') {
     group       = 'distribution'
     description = 'GitHub-Workflow triggern, auf alle 3 Installer warten und nach ~/Transfer laden'
 
