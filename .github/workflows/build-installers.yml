@@ -131,8 +131,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           cd build/distributions
-          powershell Compress-Archive -Path PetanqueTurnierManager-Installer `
-            -DestinationPath "PetanqueTurnierManager-Installer-${VERSION}-windows.zip"
+          powershell Compress-Archive -Path PetanqueTurnierManager-Installer -DestinationPath "PetanqueTurnierManager-Installer-${VERSION}-windows.zip"
         shell: bash
 
       - uses: actions/upload-artifact@v4
