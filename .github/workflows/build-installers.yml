@@ -32,7 +32,7 @@ jobs:
 
       - name: Build OXT
         working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT
+        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
 
       - name: Build app-image
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
@@ -107,7 +107,7 @@ jobs:
 
       - name: Build OXT
         working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT
+        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
         shell: bash
 
       - name: Build app-image
@@ -148,7 +148,7 @@ jobs:
 
       - name: Build OXT
         working-directory: Petanque-Turnier-Manager
-        run: ./gradlew buildOXT
+        run: ./gradlew buildOXT -Dorg.gradle.java.home=$JAVA_HOME
 
       - name: Build dmg
         run: ./gradlew buildInstaller -PinstallerType=dmg -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
