@@ -83,13 +83,14 @@ jobs:
 
       - name: Build AppImage
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           ARCH=x86_64 appimagetool build/AppDir \
-            build/distributions/PetanqueTurnierManager-Installer-linux.AppImage
+            "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-linux
-          path: build/distributions/PetanqueTurnierManager-Installer-linux.AppImage
+          path: build/distributions/PetanqueTurnierManager-Installer-*-linux.AppImage
           if-no-files-found: error
 
   # ── Windows ───────────────────────────────────────────────────────────────
@@ -128,15 +129,16 @@ jobs:
 
       - name: Zip app-image
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           cd build/distributions
           powershell Compress-Archive -Path PetanqueTurnierManager-Installer `
-            -DestinationPath PetanqueTurnierManager-Installer-windows.zip
-        shell: pwsh
+            -DestinationPath "PetanqueTurnierManager-Installer-${VERSION}-windows.zip"
+        shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/distributions/PetanqueTurnierManager-Installer-windows.zip
+          path: build/distributions/PetanqueTurnierManager-Installer-*-windows.zip
           if-no-files-found: error
 
   # ── macOS ─────────────────────────────────────────────────────────────────
