@@ -65,18 +65,25 @@ test {
     useJUnitPlatform()
 }
 
-// OXT + Logo aus dem Hauptprojekt in die Ressourcen kopieren
-def hauptprojektDir    = file(project.findProperty('hauptprojektDir') ?: "../Petanque-Turnier-Manager")
-def oxtResDir          = 'src/main/resources/de/petanqueturniermanager/installer/oxt'
-def imagesResDir       = 'src/main/resources/de/petanqueturniermanager/installer/images'
+// OXT + Logo aus dem Hauptprojekt in die generierten Ressourcen kopieren
+def hauptprojektDir = file(findProperty('hauptprojektDir') ?: "../Petanque-Turnier-Manager")
+def generatedResDir = layout.buildDirectory.dir('generated-resources')
+def oxtSrc          = new File(hauptprojektDir, "build/distributions/PetanqueTurnierManager-${version}.oxt")
+
+gradle.taskGraph.whenReady {
+    if (it.hasTask(":copyOxt") && !oxtSrc.exists()) {
+        throw new GradleException(
+            "OXT nicht gefunden: ${oxtSrc.canonicalPath}\n" +
+            "Zuerst das Hauptprojekt 'Petanque-Turnier-Manager' in Version ${version} releasen."
+        )
+    }
+}
 
 tasks.register('copyOxt', Copy) {
     group       = 'build'
     description = 'Kopiert die OXT-Datei aus dem Hauptprojekt'
-    from("${hauptprojektDir}/build/distributions") {
-        include "PetanqueTurnierManager-${version}.oxt"
-    }
-    into oxtResDir
+    from(oxtSrc.parentFile) { include oxtSrc.name }
+    into generatedResDir.map { it.dir('de/petanqueturniermanager/installer/oxt') }
     rename { 'extension.oxt' }
 }
 
@@ -84,10 +91,11 @@ tasks.register('copyLogo', Copy) {
     group       = 'build'
     description = 'Kopiert das Logo aus dem Hauptprojekt'
     from("${hauptprojektDir}/images") { include 'petanqueturniermanager-logo-256px.png' }
-    into imagesResDir
+    into generatedResDir.map { it.dir('de/petanqueturniermanager/installer/images') }
     rename { 'logo.png' }
 }
 
+sourceSets.main.resources.srcDir generatedResDir
 processResources.dependsOn copyOxt, copyLogo
 
 // jlink – minimales Runtime-Image

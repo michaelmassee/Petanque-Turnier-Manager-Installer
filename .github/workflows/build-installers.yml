@@ -24,14 +24,13 @@ jobs:
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - name: Download OXT from main project release
-        env:
-          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          gh release download "$GITHUB_REF_NAME" \
-            --repo michaelmassee/Petanque-Turnier-Manager \
-            --pattern "*.oxt" \
-            --dir Petanque-Turnier-Manager/build/distributions
+          curl -fL \
+            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
         with:
@@ -41,7 +40,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
 
       - name: Create AppDir
         run: |
@@ -106,14 +105,13 @@ jobs:
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - name: Download OXT from main project release
-        env:
-          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          gh release download "$GITHUB_REF_NAME" \
-            --repo michaelmassee/Petanque-Turnier-Manager \
-            --pattern "*.oxt" \
-            --dir Petanque-Turnier-Manager/build/distributions
+          curl -fL \
+            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
 
       - uses: actions/setup-java@v4
@@ -124,7 +122,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
         shell: bash
 
       - name: Zip app-image
@@ -153,14 +151,13 @@ jobs:
           token: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
 
       - name: Download OXT from main project release
-        env:
-          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          gh release download "$GITHUB_REF_NAME" \
-            --repo michaelmassee/Petanque-Turnier-Manager \
-            --pattern "*.oxt" \
-            --dir Petanque-Turnier-Manager/build/distributions
+          curl -fL \
+            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
         with:
@@ -170,7 +167,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build dmg
-        run: ./gradlew buildInstaller -PinstallerType=dmg -PhautprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=dmg -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
 
       - uses: actions/upload-artifact@v4
         with:
