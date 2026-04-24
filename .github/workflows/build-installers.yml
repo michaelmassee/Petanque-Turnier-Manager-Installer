@@ -39,7 +39,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
 
       - name: Create AppDir
         run: |
@@ -120,7 +120,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build app-image
-        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
         shell: bash
 
       - name: Zip app-image
@@ -164,7 +164,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build dmg
-        run: ./gradlew buildInstaller -PinstallerType=dmg -PhauptprojektDir=${{ github.workspace }}/Petanque-Turnier-Manager
+        run: ./gradlew buildInstaller -PinstallerType=dmg -PhauptprojektDir=Petanque-Turnier-Manager
 
       - uses: actions/upload-artifact@v4
         with:
