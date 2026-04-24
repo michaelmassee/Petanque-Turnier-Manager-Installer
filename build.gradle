@@ -73,7 +73,7 @@ def oxtSrc          = new File(hauptprojektDir, "build/distributions/PetanqueTur
 gradle.taskGraph.whenReady {
     if (it.hasTask(":copyOxt") && !oxtSrc.exists()) {
         throw new GradleException(
-            "OXT nicht gefunden: ${oxtSrc.canonicalPath}\n" +
+            "OXT nicht gefunden: ${oxtSrc.absolutePath}\n" +
             "Zuerst das Hauptprojekt 'Petanque-Turnier-Manager' in Version ${version} releasen."
         )
     }
