@@ -57,7 +57,7 @@ jobs:
           chmod +x "$APPDIR/AppRun"
 
           # Icon
-          cp src/main/resources/de/petanqueturniermanager/installer/images/logo.png \
+          cp build/generated-resources/de/petanqueturniermanager/installer/images/logo.png \
              "$APPDIR/logo.png"
 
           # Desktop-Datei
