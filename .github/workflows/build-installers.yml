@@ -28,7 +28,6 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL \
-            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
@@ -109,7 +108,6 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL \
-            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
@@ -155,7 +153,6 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL \
-            -H "Authorization: Bearer ${{ secrets.PTM_MAIN_REPO_TOKEN }}" \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
