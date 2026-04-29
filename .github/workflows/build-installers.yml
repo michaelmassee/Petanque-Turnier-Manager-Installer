@@ -27,7 +27,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          curl -fL \
+          curl -fL --retry 5 --retry-delay 10 \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
@@ -108,7 +108,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          curl -fL \
+          curl -fL --retry 5 --retry-delay 10 \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
@@ -153,7 +153,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
-          curl -fL \
+          curl -fL --retry 5 --retry-delay 10 \
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
