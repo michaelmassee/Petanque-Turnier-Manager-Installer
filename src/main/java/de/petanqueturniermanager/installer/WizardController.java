@@ -6,6 +6,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -17,7 +18,8 @@ public final class WizardController {
     private final Stage stage;
     private final BorderPane hauptLayout;
     private final InstallerZustand zustand;
-    private final ResourceBundle texte;
+    private ResourceBundle texte;
+    private String aktuellerScreen;
 
     public WizardController(Stage stage, BorderPane hauptLayout,
                             InstallerZustand zustand, ResourceBundle texte) {
@@ -59,7 +61,16 @@ public final class WizardController {
         return stage;
     }
 
+    public void wechseleSprachenBundle(Locale neueLocale) {
+        this.texte = ResourceBundle.getBundle(
+            "de.petanqueturniermanager.installer.i18n.messages", neueLocale);
+        if (aktuellerScreen != null) {
+            ladeScreen(aktuellerScreen);
+        }
+    }
+
     private void ladeScreen(String fxmlDatei) {
+        aktuellerScreen = fxmlDatei;
         try {
             var loader = new FXMLLoader(
                 getClass().getResource(FXML_BASIS + fxmlDatei),

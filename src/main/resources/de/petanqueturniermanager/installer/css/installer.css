@@ -96,6 +96,30 @@
     -fx-background-color: #1e1e1e;
 }
 
+/* Sprachumschalter im Header */
+.sprachen-combobox {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-border-color: rgba(255,255,255,0.4);
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-font-size: 12px;
+}
+/* Button-Zelle: zeigt die gewählte Sprache */
+.sprachen-combobox > .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-padding: 2 6 2 6;
+}
+.sprachen-combobox:hover {
+    -fx-background-color: rgba(255,255,255,0.25);
+}
+.sprachen-combobox .arrow-button {
+    -fx-background-color: transparent;
+}
+.sprachen-combobox .arrow {
+    -fx-background-color: white;
+}
+
 /* Buttons */
 .button-primary {
     -fx-background-color: #1a6b3a;

@@ -1,12 +1,18 @@
 package de.petanqueturniermanager.installer;
 
 import javafx.application.Application;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -33,8 +39,34 @@ public final class InstallerApp extends Application {
             texte);
         BorderPane hauptLayout = loader.load();
 
+        var sprachen = new LinkedHashMap<String, Locale>();
+        sprachen.put("Deutsch",    Locale.of("de"));
+        sprachen.put("English",    Locale.of("en"));
+        sprachen.put("Français",   Locale.of("fr"));
+        sprachen.put("Nederlands", Locale.of("nl"));
+        sprachen.put("Español",    Locale.of("es"));
+
+        var sprachenBox = new ComboBox<>(FXCollections.observableArrayList(sprachen.keySet()));
+        sprachenBox.getStyleClass().add("sprachen-combobox");
+        sprachen.forEach((name, loc) -> {
+            if (loc.getLanguage().equals(locale.getLanguage())) {
+                sprachenBox.setValue(name);
+            }
+        });
+
+        var spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        ((HBox) hauptLayout.getTop()).getChildren().addAll(spacer, sprachenBox);
+
         var zustand = new InstallerZustand();
         var wizard  = new WizardController(primaryStage, hauptLayout, zustand, texte);
+
+        sprachenBox.setOnAction(e -> {
+            var neueLocale = sprachen.get(sprachenBox.getValue());
+            if (neueLocale != null) {
+                wizard.wechseleSprachenBundle(neueLocale);
+            }
+        });
 
         var logoUrl = getClass().getResource(
             "/de/petanqueturniermanager/installer/images/logo.png");

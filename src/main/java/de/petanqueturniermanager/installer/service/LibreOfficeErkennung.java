@@ -3,6 +3,7 @@ package de.petanqueturniermanager.installer.service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -15,18 +16,22 @@ public final class LibreOfficeErkennung {
     private static final List<String> LINUX_STANDARD_PFADE = List.of(
         "/usr/lib/libreoffice/program/unopkg",
         "/usr/local/lib/libreoffice/program/unopkg",
-        "/opt/libreoffice/program/unopkg"
+        "/opt/libreoffice/program/unopkg",
+        "/snap/libreoffice/current/lib/libreoffice/program/unopkg"
     );
 
     private static final List<String> MACOS_STANDARD_PFADE = List.of(
-        "/Applications/LibreOffice.app/Contents/MacOS/unopkg",
-        "/Applications/LibreOffice 25.app/Contents/MacOS/unopkg"
+        "/Applications/LibreOffice.app/Contents/MacOS/unopkg"
     );
 
-    private static final List<String> WINDOWS_STANDARD_PFADE = List.of(
-        "C:\\Program Files\\LibreOffice\\program\\unopkg.com",
-        "C:\\Program Files (x86)\\LibreOffice\\program\\unopkg.com"
-    );
+    private static List<String> windowsStandardPfade() {
+        var pf   = System.getenv("ProgramFiles");
+        var pf86 = System.getenv("ProgramFiles(x86)");
+        List<String> pfade = new ArrayList<>();
+        if (pf   != null) pfade.add(pf   + "\\LibreOffice\\program\\unopkg.com");
+        if (pf86 != null) pfade.add(pf86 + "\\LibreOffice\\program\\unopkg.com");
+        return pfade;
+    }
 
     private LibreOfficeErkennung() {}
 
@@ -68,7 +73,7 @@ public final class LibreOfficeErkennung {
         var os = System.getProperty("os.name", "").toLowerCase();
         List<String> kandidaten;
         if (os.contains("win")) {
-            kandidaten = WINDOWS_STANDARD_PFADE;
+            kandidaten = windowsStandardPfade();
         } else if (os.contains("mac")) {
             kandidaten = MACOS_STANDARD_PFADE;
         } else {
@@ -83,9 +88,41 @@ public final class LibreOfficeErkennung {
             }
         }
 
+        if (os.contains("mac")) {
+            return sucheInApplicationsVerzeichnis();
+        }
         // Wildcard-Suche für /opt/libreoffice*/program/unopkg (Linux)
-        if (!os.contains("win") && !os.contains("mac")) {
+        if (!os.contains("win")) {
             return sucheInOptVerzeichnis();
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Path> sucheInApplicationsVerzeichnis() {
+        List<Path> suchVerzeichnisse = new ArrayList<>();
+        suchVerzeichnisse.add(Path.of("/Applications"));
+        var home = System.getProperty("user.home");
+        if (home != null) {
+            suchVerzeichnisse.add(Path.of(home, "Applications"));
+        }
+        for (var verzeichnis : suchVerzeichnisse) {
+            if (!Files.isDirectory(verzeichnis)) {
+                continue;
+            }
+            try (var stream = Files.list(verzeichnis)) {
+                var gefunden = stream
+                    .filter(p -> p.getFileName().toString().toLowerCase().startsWith("libreoffice"))
+                    .filter(p -> p.getFileName().toString().endsWith(".app"))
+                    .map(p -> p.resolve("Contents/MacOS/unopkg"))
+                    .filter(Files::isExecutable)
+                    .findFirst();
+                if (gefunden.isPresent()) {
+                    LOG.info("unopkg in " + verzeichnis + " gefunden: " + gefunden.get());
+                    return gefunden;
+                }
+            } catch (IOException e) {
+                LOG.fine("Fehler bei Applications-Suche in " + verzeichnis + ": " + e.getMessage());
+            }
         }
         return Optional.empty();
     }
