@@ -19,7 +19,7 @@
         <Insets top="40" right="60" bottom="20" left="60"/>
     </padding>
 
-    <ImageView fx:id="logoBild" fitWidth="64" fitHeight="64" preserveRatio="true"/>
+    <ImageView fx:id="logoBild" fitWidth="128" fitHeight="128" preserveRatio="true"/>
 
     <Label text="%willkommen.titel" styleClass="screen-titel"/>
     <Label text="%willkommen.untertitel" styleClass="screen-untertitel" wrapText="true" textAlignment="CENTER"/>
