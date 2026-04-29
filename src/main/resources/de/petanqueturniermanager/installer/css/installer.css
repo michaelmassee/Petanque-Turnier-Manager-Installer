@@ -32,8 +32,9 @@
     -fx-text-fill: #444;
 }
 .screen-version {
-    -fx-font-size: 12px;
-    -fx-text-fill: #888;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #555;
 }
 .screen-text {
     -fx-font-size: 13px;
