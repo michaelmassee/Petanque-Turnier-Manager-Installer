@@ -61,7 +61,7 @@ public final class OxtInstallation {
             try (var reader = prozess.getInputStream()) {
                 var ausgabe = new String(reader.readAllBytes());
                 for (var zeile : ausgabe.split("\n")) {
-                    if (!zeile.isBlank()) {
+                    if (!zeile.isBlank() && !istBekanntesJvmWarning(zeile)) {
                         log.accept(zeile);
                     }
                 }
@@ -78,6 +78,16 @@ public final class OxtInstallation {
             throw new OxtInstallationsException(
                 "Fehler beim Ausführen von unopkg: " + e.getMessage(), e);
         }
+    }
+
+    private static boolean istBekanntesJvmWarning(String zeile) {
+        return zeile.startsWith("WARNING: ") && (
+            zeile.contains("NativeLibraryLoader") ||
+            zeile.contains("--enable-native-access") ||
+            zeile.contains("Restricted methods will be blocked") ||
+            zeile.contains("java.lang.System::load") ||
+            zeile.contains("A restricted method in java.lang.System")
+        );
     }
 
     private static void loescheTempDatei(Path tmp) {
