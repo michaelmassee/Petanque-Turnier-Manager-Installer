@@ -87,6 +87,19 @@ tasks.register('copyOxt', Copy) {
     rename { 'extension.oxt' }
 }
 
+tasks.register('generateVersionProperties') {
+    group       = 'build'
+    description = 'Schreibt version.properties mit der aktuellen Projekt-Version'
+    def outFile = generatedResDir.map { it.file('de/petanqueturniermanager/installer/version.properties') }
+    inputs.property 'version', version
+    outputs.file outFile
+    doLast {
+        def f = outFile.get().asFile
+        f.parentFile.mkdirs()
+        f.text = "version=${version}\n"
+    }
+}
+
 tasks.register('copyLogo', Copy) {
     group       = 'build'
     description = 'Kopiert das Logo aus dem Hauptprojekt'
@@ -96,7 +109,7 @@ tasks.register('copyLogo', Copy) {
 }
 
 sourceSets.main.resources.srcDir generatedResDir
-processResources.dependsOn copyOxt, copyLogo
+processResources.dependsOn copyOxt, copyLogo, generateVersionProperties
 
 // jlink – minimales Runtime-Image
 def runtimeImageDir  = layout.buildDirectory.dir('runtime-image')

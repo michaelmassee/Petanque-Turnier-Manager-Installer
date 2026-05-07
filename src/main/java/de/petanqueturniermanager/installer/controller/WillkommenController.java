@@ -35,8 +35,19 @@ public final class WillkommenController {
     }
 
     private String holeVersion() {
+        try (var in = getClass().getResourceAsStream(
+                "/de/petanqueturniermanager/installer/version.properties")) {
+            if (in != null) {
+                var props = new java.util.Properties();
+                props.load(in);
+                var v = props.getProperty("version");
+                if (v != null && !v.isBlank()) return v;
+            }
+        } catch (java.io.IOException ignored) {
+            // Fallback unten
+        }
         var pkg = getClass().getPackage();
         var version = pkg != null ? pkg.getImplementationVersion() : null;
-        return version != null ? version : "5.7.10";
+        return version != null ? version : "?";
     }
 }
