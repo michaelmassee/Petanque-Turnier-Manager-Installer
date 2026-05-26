@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      oxt_version:
+        description: 'OXT-/Hauptprojekt-Version (z. B. 5.31.0) – nur für Testbuilds ohne Tag. Bei Tag-Builds leer lassen.'
+        required: false
+        default: ''
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -25,10 +30,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
@@ -81,7 +88,8 @@ jobs:
 
       - name: Build AppImage
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
           ARCH=x86_64 appimagetool build/AppDir \
             "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
           chmod +x "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
@@ -106,10 +114,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
 
@@ -124,17 +134,83 @@ jobs:
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
         shell: bash
 
-      - name: Zip app-image
+      - name: Build self-extracting EXE (IExpress)
+        shell: pwsh
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          cd build/distributions
-          powershell Compress-Archive -Path PetanqueTurnierManager-Installer -DestinationPath "PetanqueTurnierManager-Installer-${VERSION}-windows.zip"
-        shell: bash
+          $version = "${{ github.event.inputs.oxt_version }}"
+          if (-not $version) { $version = "${env:GITHUB_REF_NAME}" -replace '^v','' }
+          $dist    = (Resolve-Path "build/distributions").Path
+          $appDir  = Join-Path $dist "PetanqueTurnierManager-Installer"
+          $stage   = Join-Path $dist "sfx-stage"
+          $payload = Join-Path $stage "payload.zip"
+          $runCmd  = Join-Path $stage "run.cmd"
+          $sedFile = Join-Path $stage "package.sed"
+          $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
+
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          # 1) Inhalt des app-image-Ordners (ohne Wrapper) als ZIP
+          Compress-Archive -Path (Join-Path $appDir '*') -DestinationPath $payload -Force
+
+          # 2) Launcher-Skript: ZIP nach %TEMP% entpacken, Wizard starten, danach aufräumen
+          $runScript = @'
+          @echo off
+          setlocal
+          set "TARGET=%TEMP%\PtmInstaller_%RANDOM%%RANDOM%"
+          mkdir "%TARGET%" >nul 2>&1
+          powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+            "Expand-Archive -LiteralPath '%~dp0payload.zip' -DestinationPath '%TARGET%' -Force"
+          "%TARGET%\bin\PetanqueTurnierManager-Installer.exe"
+          rmdir /s /q "%TARGET%" >nul 2>&1
+          endlocal
+          '@
+          [System.IO.File]::WriteAllText($runCmd, $runScript, [System.Text.Encoding]::ASCII)
+
+          # 3) IExpress-SED erzeugen (CRLF, ASCII)
+          $sed = @"
+          [Version]
+          Class=IEXPRESS
+          SEDVersion=3
+          [Options]
+          PackagePurpose=InstallApp
+          ShowInstallProgramWindow=2
+          HideExtractAnimation=1
+          UseLongFileName=1
+          InsideCompressed=0
+          CAB_FixedSize=0
+          CAB_ResvCodeSigning=0
+          RebootMode=N
+          InstallPrompt=
+          DisplayLicense=
+          FinishMessage=
+          TargetName=$outExe
+          FriendlyName=Petanque Turnier Manager Installer $version
+          AppLaunched=cmd /c run.cmd
+          PostInstallCmd=<None>
+          SourceFiles=SourceFiles
+          [Strings]
+          FILE0="payload.zip"
+          FILE1="run.cmd"
+          [SourceFiles]
+          SourceFiles0=$stage
+          [SourceFiles0]
+          %FILE0%=
+          %FILE1%=
+          "@
+          $sed = ($sed -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
+          [System.IO.File]::WriteAllText($sedFile, $sed, [System.Text.Encoding]::ASCII)
+
+          # 4) SFX-EXE bauen
+          & "$env:WINDIR\System32\iexpress.exe" /N /Q $sedFile
+          if (-not (Test-Path $outExe)) { throw "IExpress hat kein EXE erzeugt: $outExe" }
+
+          # 5) Zwischendateien entfernen
+          Remove-Item $stage -Recurse -Force
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/distributions/PetanqueTurnierManager-Installer-*-windows.zip
+          path: build/distributions/PetanqueTurnierManager-Installer-*-windows.exe
           if-no-files-found: error
 
   # ── macOS ─────────────────────────────────────────────────────────────────
@@ -151,10 +227,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
