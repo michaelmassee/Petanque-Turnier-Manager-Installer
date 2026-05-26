@@ -200,15 +200,34 @@ jobs:
           $sed = ($sed -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
           [System.IO.File]::WriteAllText($sedFile, $sed, [System.Text.Encoding]::ASCII)
 
+          # --- Diagnose: Stage-Inhalt und generierte SED ausgeben ---
+          Write-Host "=== Stage-Inhalt ($stage) ==="
+          Get-ChildItem $stage | Format-Table Name,Length | Out-String | Write-Host
+          Write-Host "=== package.sed ==="
+          Get-Content $sedFile | Write-Host
+
           # 4) SFX-EXE bauen – IExpress sucht die Quelldateien relativ zum
-          #    aktuellen Arbeitsverzeichnis, daher vorher in den Stage-Ordner wechseln
+          #    aktuellen Arbeitsverzeichnis, daher vorher in den Stage-Ordner wechseln.
+          #    Start-Process -Wait liefert zuverlässig den Exit-Code.
+          $iexpress = Join-Path $env:WINDIR "System32\iexpress.exe"
+          $logOut   = Join-Path $stage "iexpress.out.log"
+          $logErr   = Join-Path $stage "iexpress.err.log"
           Push-Location $stage
           try {
-            & "$env:WINDIR\System32\iexpress.exe" /N /Q $sedFile
+            $proc = Start-Process -FilePath $iexpress `
+              -ArgumentList @('/N', '/Q', "`"$sedFile`"") `
+              -WorkingDirectory $stage -Wait -PassThru `
+              -RedirectStandardOutput $logOut -RedirectStandardError $logErr
           } finally {
             Pop-Location
           }
-          if (-not (Test-Path $outExe)) { throw "IExpress hat kein EXE erzeugt: $outExe" }
+          Write-Host "=== IExpress ExitCode: $($proc.ExitCode) ==="
+          if (Test-Path $logOut) { Write-Host "--- stdout ---"; Get-Content $logOut | Write-Host }
+          if (Test-Path $logErr) { Write-Host "--- stderr ---"; Get-Content $logErr | Write-Host }
+          Write-Host "=== distributions-Inhalt nach IExpress ==="
+          Get-ChildItem $dist | Format-Table Name,Length | Out-String | Write-Host
+
+          if (-not (Test-Path $outExe)) { throw "IExpress hat kein EXE erzeugt (ExitCode $($proc.ExitCode)): $outExe" }
 
           # 5) Zwischendateien entfernen
           Remove-Item $stage -Recurse -Force
