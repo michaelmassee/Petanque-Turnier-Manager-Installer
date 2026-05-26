@@ -192,7 +192,7 @@ jobs:
           FILE0="payload.zip"
           FILE1="run.cmd"
           [SourceFiles]
-          SourceFiles0=$stage
+          SourceFiles0=
           [SourceFiles0]
           %FILE0%=
           %FILE1%=
@@ -200,8 +200,14 @@ jobs:
           $sed = ($sed -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
           [System.IO.File]::WriteAllText($sedFile, $sed, [System.Text.Encoding]::ASCII)
 
-          # 4) SFX-EXE bauen
-          & "$env:WINDIR\System32\iexpress.exe" /N /Q $sedFile
+          # 4) SFX-EXE bauen – IExpress sucht die Quelldateien relativ zum
+          #    aktuellen Arbeitsverzeichnis, daher vorher in den Stage-Ordner wechseln
+          Push-Location $stage
+          try {
+            & "$env:WINDIR\System32\iexpress.exe" /N /Q $sedFile
+          } finally {
+            Pop-Location
+          }
           if (-not (Test-Path $outExe)) { throw "IExpress hat kein EXE erzeugt: $outExe" }
 
           # 5) Zwischendateien entfernen
