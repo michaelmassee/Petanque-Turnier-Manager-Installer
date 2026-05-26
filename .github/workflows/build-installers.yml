@@ -187,12 +187,14 @@ jobs:
           FriendlyName=Petanque Turnier Manager Installer $version
           AppLaunched=cmd /c run.cmd
           PostInstallCmd=<None>
+          AdminQuietInstCmd=
+          UserQuietInstCmd=
           SourceFiles=SourceFiles
           [Strings]
           FILE0="payload.zip"
           FILE1="run.cmd"
           [SourceFiles]
-          SourceFiles0=
+          SourceFiles0=$stage
           [SourceFiles0]
           %FILE0%=
           %FILE1%=
