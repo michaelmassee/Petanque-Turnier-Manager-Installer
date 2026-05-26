@@ -134,105 +134,51 @@ jobs:
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
         shell: bash
 
-      - name: Build self-extracting EXE (IExpress)
+      - name: Build self-extracting EXE (7-Zip SFX)
         shell: pwsh
         run: |
           $version = "${{ github.event.inputs.oxt_version }}"
           if (-not $version) { $version = "${env:GITHUB_REF_NAME}" -replace '^v','' }
           $dist    = (Resolve-Path "build/distributions").Path
           $appDir  = Join-Path $dist "PetanqueTurnierManager-Installer"
-          $stage   = Join-Path $dist "sfx-stage"
-          $payload = Join-Path $stage "payload.zip"
-          $runCmd  = Join-Path $stage "run.cmd"
-          $sedFile = Join-Path $stage "package.sed"
+          $archive = Join-Path $dist "payload.7z"
+          $config  = Join-Path $dist "sfx-config.txt"
           $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
 
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          # 7-Zip und das SFX-Modul für Installer auf dem Runner finden
+          $sevenZip  = "C:\Program Files\7-Zip\7z.exe"
+          $sfxModule = "C:\Program Files\7-Zip\7z.sfx"
+          if (-not (Test-Path $sevenZip))  { throw "7z.exe nicht gefunden: $sevenZip" }
+          if (-not (Test-Path $sfxModule)) { throw "SFX-Modul nicht gefunden: $sfxModule" }
 
-          # 1) Inhalt des app-image-Ordners (ohne Wrapper) als ZIP
-          Compress-Archive -Path (Join-Path $appDir '*') -DestinationPath $payload -Force
+          # 1) app-image-Inhalt als 7z-Archiv (bin\...exe liegt damit an der Archivwurzel)
+          if (Test-Path $archive) { Remove-Item $archive -Force }
+          & $sevenZip a -t7z -mx=9 $archive (Join-Path $appDir '*')
+          if ($LASTEXITCODE -ne 0) { throw "7z a fehlgeschlagen (ExitCode $LASTEXITCODE)" }
 
-          # 2) Launcher-Skript: ZIP nach %TEMP% entpacken, Wizard starten, danach aufräumen
-          $runScript = @'
-          @echo off
-          setlocal
-          set "TARGET=%TEMP%\PtmInstaller_%RANDOM%%RANDOM%"
-          mkdir "%TARGET%" >nul 2>&1
-          powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-            "Expand-Archive -LiteralPath '%~dp0payload.zip' -DestinationPath '%TARGET%' -Force"
-          "%TARGET%\bin\PetanqueTurnierManager-Installer.exe"
-          rmdir /s /q "%TARGET%" >nul 2>&1
-          endlocal
-          '@
-          [System.IO.File]::WriteAllText($runCmd, $runScript, [System.Text.Encoding]::ASCII)
-
-          # 3) IExpress-SED erzeugen (CRLF, ASCII)
-          $sed = @"
-          [Version]
-          Class=IEXPRESS
-          SEDVersion=3
-          [Options]
-          PackagePurpose=InstallApp
-          ShowInstallProgramWindow=2
-          HideExtractAnimation=1
-          UseLongFileName=1
-          InsideCompressed=0
-          CAB_FixedSize=0
-          CAB_ResvCodeSigning=0
-          RebootMode=N
-          InstallPrompt=
-          DisplayLicense=
-          FinishMessage=
-          TargetName=$outExe
-          FriendlyName=Petanque Turnier Manager Installer $version
-          AppLaunched=cmd /c run.cmd
-          PostInstallCmd=<None>
-          AdminQuietInstCmd=
-          UserQuietInstCmd=
-          SourceFiles=SourceFiles
-          [Strings]
-          FILE0="payload.zip"
-          FILE1="run.cmd"
-          [SourceFiles]
-          SourceFiles0=$stage
-          [SourceFiles0]
-          %FILE0%=
-          %FILE1%=
+          # 2) SFX-Konfiguration: still nach %TEMP% entpacken, Wizard starten, danach aufräumen
+          $cfg = @"
+          ;!@Install@!UTF-8!
+          Title="Pétanque Turnier Manager Installer $version"
+          RunProgram="bin\\PetanqueTurnierManager-Installer.exe"
+          GUIMode="2"
+          ;!@InstallEnd@!
           "@
-          $sed = ($sed -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
-          [System.IO.File]::WriteAllText($sedFile, $sed, [System.Text.Encoding]::ASCII)
+          $cfg = ($cfg -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
+          [System.IO.File]::WriteAllText($config, $cfg, (New-Object System.Text.UTF8Encoding($false)))
 
-          # --- Diagnose: Stage-Inhalt und generierte SED ausgeben ---
-          Write-Host "=== Stage-Inhalt ($stage) ==="
-          Get-ChildItem $stage | Format-Table Name,Length | Out-String | Write-Host
-          Write-Host "=== package.sed ==="
-          Get-Content $sedFile | Write-Host
+          # 3) SFX-EXE = 7z.sfx + Konfiguration + Archiv (binär aneinanderhängen)
+          $bytes = [System.IO.File]::ReadAllBytes($sfxModule) +
+                   [System.IO.File]::ReadAllBytes($config) +
+                   [System.IO.File]::ReadAllBytes($archive)
+          [System.IO.File]::WriteAllBytes($outExe, $bytes)
 
-          # 4) SFX-EXE bauen – IExpress sucht die Quelldateien relativ zum
-          #    aktuellen Arbeitsverzeichnis, daher vorher in den Stage-Ordner wechseln.
-          #    Start-Process -Wait liefert zuverlässig den Exit-Code.
-          $iexpress = Join-Path $env:WINDIR "System32\iexpress.exe"
-          $logOut   = Join-Path $stage "iexpress.out.log"
-          $logErr   = Join-Path $stage "iexpress.err.log"
-          Push-Location $stage
-          try {
-            $proc = Start-Process -FilePath $iexpress `
-              -ArgumentList @('/N', '/Q', "`"$sedFile`"") `
-              -WorkingDirectory $stage -Wait -PassThru `
-              -RedirectStandardOutput $logOut -RedirectStandardError $logErr
-          } finally {
-            Pop-Location
-          }
-          Write-Host "=== IExpress ExitCode: $($proc.ExitCode) ==="
-          if (Test-Path $logOut) { Write-Host "--- stdout ---"; Get-Content $logOut | Write-Host }
-          if (Test-Path $logErr) { Write-Host "--- stderr ---"; Get-Content $logErr | Write-Host }
-          Write-Host "=== distributions-Inhalt nach IExpress ==="
+          Write-Host "=== distributions-Inhalt ==="
           Get-ChildItem $dist | Format-Table Name,Length | Out-String | Write-Host
+          if (-not (Test-Path $outExe)) { throw "SFX-EXE wurde nicht erzeugt: $outExe" }
 
-          if (-not (Test-Path $outExe)) { throw "IExpress hat kein EXE erzeugt (ExitCode $($proc.ExitCode)): $outExe" }
-
-          # 5) Zwischendateien entfernen
-          Remove-Item $stage -Recurse -Force
+          # 4) Zwischendateien entfernen
+          Remove-Item $archive,$config -Force
 
       - uses: actions/upload-artifact@v4
         with:
