@@ -160,7 +160,7 @@ jobs:
           $cfg = @"
           ;!@Install@!UTF-8!
           Title="Pétanque Turnier Manager Installer $version"
-          RunProgram="bin\\PetanqueTurnierManager-Installer.exe"
+          RunProgram="PetanqueTurnierManager-Installer.exe"
           GUIMode="2"
           ;!@InstallEnd@!
           "@
