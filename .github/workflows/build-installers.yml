@@ -134,60 +134,60 @@ jobs:
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
         shell: bash
 
-      - name: Build self-extracting EXE (7-Zip SFX)
+      - name: Build self-extracting EXE (NSIS)
         shell: pwsh
         run: |
           $version = "${{ github.event.inputs.oxt_version }}"
           if (-not $version) { $version = "${env:GITHUB_REF_NAME}" -replace '^v','' }
           $dist    = (Resolve-Path "build/distributions").Path
           $appDir  = Join-Path $dist "PetanqueTurnierManager-Installer"
-          $archive = Join-Path $dist "payload.7z"
-          $config  = Join-Path $dist "sfx-config.txt"
+          $nsi     = Join-Path $dist "installer.nsi"
           $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
 
-          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
-          if (-not (Test-Path $sevenZip)) { throw "7z.exe nicht gefunden: $sevenZip" }
+          # makensis ist auf windows-latest vorinstalliert
+          $makensis = "C:\Program Files (x86)\NSIS\makensis.exe"
+          if (-not (Test-Path $makensis)) {
+            $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+            if ($cmd) { $makensis = $cmd.Source }
+          }
+          if (-not (Test-Path $makensis)) { throw "makensis nicht gefunden" }
 
-          # Das auf dem Runner vorinstallierte 7z.sfx wertet RunProgram NICHT aus
-          # (es entpackt nur). Das benötigte Auto-Start-Modul 7zS2.sfx steckt im
-          # "7-Zip Extra"-Paket – daher laden und daraus extrahieren.
-          # 7zS2.sfx startet RunProgram ohne UAC/Admin (passt zur No-Installer-Strategie).
-          $extraArc  = Join-Path $dist "7z-extra.7z"
-          $extraDir  = Join-Path $dist "7z-extra"
-          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-extra.7z" -OutFile $extraArc
-          & $sevenZip x $extraArc "-o$extraDir" -y 7zS2.sfx | Out-Null
-          $sfxModule = Join-Path $extraDir "7zS2.sfx"
-          if (-not (Test-Path $sfxModule)) { throw "7zS2.sfx nicht gefunden nach Extraktion: $sfxModule" }
+          # NSIS-Skript: stiller Extraktor – entpackt das app-image nach %TEMP%,
+          # startet den Wizard und räumt danach auf. Kein UAC (Level user).
+          $script = @"
+          Unicode true
+          Name "Pétanque Turnier Manager Installer"
+          OutFile "$outExe"
+          RequestExecutionLevel user
+          SilentInstall silent
 
-          # 1) app-image-Inhalt als 7z-Archiv (Launcher liegt damit an der Archivwurzel)
-          if (Test-Path $archive) { Remove-Item $archive -Force }
-          & $sevenZip a -t7z -mx=9 $archive (Join-Path $appDir '*')
-          if ($LASTEXITCODE -ne 0) { throw "7z a fehlgeschlagen (ExitCode $LASTEXITCODE)" }
-
-          # 2) SFX-Konfiguration: nach %TEMP% entpacken und Wizard starten
-          $cfg = @"
-          ;!@Install@!UTF-8!
-          Title="Pétanque Turnier Manager Installer $version"
-          Progress="yes"
-          RunProgram="PetanqueTurnierManager-Installer.exe"
-          ;!@InstallEnd@!
+          Section
+            ; eindeutiges Temp-Verzeichnis anlegen
+            GetTempFileName `$0
+            Delete `$0
+            CreateDirectory `$0
+            SetOutPath `$0
+            File /r "$appDir\*"
+            ExecWait '"`$0\PetanqueTurnierManager-Installer.exe"'
+            SetOutPath `$TEMP
+            RMDir /r `$0
+          SectionEnd
           "@
-          $cfg = ($cfg -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
-          [System.IO.File]::WriteAllText($config, $cfg, (New-Object System.Text.UTF8Encoding($false)))
+          $script = ($script -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
+          [System.IO.File]::WriteAllText($nsi, $script, (New-Object System.Text.UTF8Encoding($false)))
 
-          # 3) SFX-EXE = 7z.sfx + Konfiguration + Archiv (binär aneinanderhängen)
-          $bytes = [System.IO.File]::ReadAllBytes($sfxModule) +
-                   [System.IO.File]::ReadAllBytes($config) +
-                   [System.IO.File]::ReadAllBytes($archive)
-          [System.IO.File]::WriteAllBytes($outExe, $bytes)
+          Write-Host "=== installer.nsi ==="
+          Get-Content $nsi | Write-Host
+
+          & $makensis "/V3" $nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis fehlgeschlagen (ExitCode $LASTEXITCODE)" }
 
           Write-Host "=== distributions-Inhalt ==="
           Get-ChildItem $dist | Format-Table Name,Length | Out-String | Write-Host
-          if (-not (Test-Path $outExe)) { throw "SFX-EXE wurde nicht erzeugt: $outExe" }
+          if (-not (Test-Path $outExe)) { throw "EXE wurde nicht erzeugt: $outExe" }
 
-          # 4) Zwischendateien entfernen
-          Remove-Item $archive,$config,$extraArc -Force
-          Remove-Item $extraDir -Recurse -Force
+          # Zwischendatei entfernen
+          Remove-Item $nsi -Force
 
       - uses: actions/upload-artifact@v4
         with:
