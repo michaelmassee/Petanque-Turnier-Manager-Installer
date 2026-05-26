@@ -145,23 +145,31 @@ jobs:
           $config  = Join-Path $dist "sfx-config.txt"
           $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
 
-          # 7-Zip und das SFX-Modul für Installer auf dem Runner finden
-          $sevenZip  = "C:\Program Files\7-Zip\7z.exe"
-          $sfxModule = "C:\Program Files\7-Zip\7z.sfx"
-          if (-not (Test-Path $sevenZip))  { throw "7z.exe nicht gefunden: $sevenZip" }
-          if (-not (Test-Path $sfxModule)) { throw "SFX-Modul nicht gefunden: $sfxModule" }
+          $sevenZip = "C:\Program Files\7-Zip\7z.exe"
+          if (-not (Test-Path $sevenZip)) { throw "7z.exe nicht gefunden: $sevenZip" }
 
-          # 1) app-image-Inhalt als 7z-Archiv (bin\...exe liegt damit an der Archivwurzel)
+          # Das auf dem Runner vorinstallierte 7z.sfx wertet RunProgram NICHT aus
+          # (es entpackt nur). Das benötigte Auto-Start-Modul 7zS2.sfx steckt im
+          # "7-Zip Extra"-Paket – daher laden und daraus extrahieren.
+          # 7zS2.sfx startet RunProgram ohne UAC/Admin (passt zur No-Installer-Strategie).
+          $extraArc  = Join-Path $dist "7z-extra.7z"
+          $extraDir  = Join-Path $dist "7z-extra"
+          Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-extra.7z" -OutFile $extraArc
+          & $sevenZip x $extraArc "-o$extraDir" -y 7zS2.sfx | Out-Null
+          $sfxModule = Join-Path $extraDir "7zS2.sfx"
+          if (-not (Test-Path $sfxModule)) { throw "7zS2.sfx nicht gefunden nach Extraktion: $sfxModule" }
+
+          # 1) app-image-Inhalt als 7z-Archiv (Launcher liegt damit an der Archivwurzel)
           if (Test-Path $archive) { Remove-Item $archive -Force }
           & $sevenZip a -t7z -mx=9 $archive (Join-Path $appDir '*')
           if ($LASTEXITCODE -ne 0) { throw "7z a fehlgeschlagen (ExitCode $LASTEXITCODE)" }
 
-          # 2) SFX-Konfiguration: still nach %TEMP% entpacken, Wizard starten, danach aufräumen
+          # 2) SFX-Konfiguration: nach %TEMP% entpacken und Wizard starten
           $cfg = @"
           ;!@Install@!UTF-8!
           Title="Pétanque Turnier Manager Installer $version"
+          Progress="yes"
           RunProgram="PetanqueTurnierManager-Installer.exe"
-          GUIMode="2"
           ;!@InstallEnd@!
           "@
           $cfg = ($cfg -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
@@ -178,7 +186,8 @@ jobs:
           if (-not (Test-Path $outExe)) { throw "SFX-EXE wurde nicht erzeugt: $outExe" }
 
           # 4) Zwischendateien entfernen
-          Remove-Item $archive,$config -Force
+          Remove-Item $archive,$config,$extraArc -Force
+          Remove-Item $extraDir -Recurse -Force
 
       - uses: actions/upload-artifact@v4
         with:
