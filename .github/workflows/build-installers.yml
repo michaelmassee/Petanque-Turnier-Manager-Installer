@@ -144,13 +144,22 @@ jobs:
           $nsi     = Join-Path $dist "installer.nsi"
           $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
 
-          # makensis ist auf windows-latest vorinstalliert
-          $makensis = "C:\Program Files (x86)\NSIS\makensis.exe"
-          if (-not (Test-Path $makensis)) {
+          # makensis suchen; falls nicht vorhanden, per Chocolatey installieren
+          function Find-Makensis {
+            $p = "C:\Program Files (x86)\NSIS\makensis.exe"
+            if (Test-Path $p) { return $p }
             $cmd = Get-Command makensis -ErrorAction SilentlyContinue
-            if ($cmd) { $makensis = $cmd.Source }
+            if ($cmd) { return $cmd.Source }
+            return $null
           }
-          if (-not (Test-Path $makensis)) { throw "makensis nicht gefunden" }
+          $makensis = Find-Makensis
+          if (-not $makensis) {
+            Write-Host "NSIS nicht gefunden – installiere via Chocolatey ..."
+            choco install nsis -y --no-progress | Out-Null
+            $makensis = Find-Makensis
+          }
+          if (-not $makensis) { throw "makensis nicht gefunden (auch nach choco install)" }
+          Write-Host "makensis: $makensis"
 
           # NSIS-Skript: stiller Extraktor – entpackt das app-image nach %TEMP%,
           # startet den Wizard und räumt danach auf. Kein UAC (Level user).
