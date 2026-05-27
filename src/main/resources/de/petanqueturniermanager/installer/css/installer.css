@@ -17,6 +17,24 @@
     -fx-font-weight: bold;
 }
 
+/* Footer */
+.footer-box {
+    -fx-background-color: #f0f0f0;
+    -fx-padding: 8 24 8 24;
+    -fx-border-color: #d0d0d0 transparent transparent transparent;
+    -fx-border-width: 1;
+}
+.footer-spruch {
+    -fx-font-size: 11px;
+    -fx-font-style: italic;
+    -fx-text-fill: #555555;
+}
+.footer-autor {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #1a6b3a;
+}
+
 /* Screen-Inhalte */
 .screen-box {
     -fx-background-color: white;

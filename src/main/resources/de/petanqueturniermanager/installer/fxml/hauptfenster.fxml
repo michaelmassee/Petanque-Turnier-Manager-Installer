@@ -2,6 +2,7 @@
 
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.Label?>
 
 <BorderPane
@@ -16,5 +17,13 @@
             <Label text="Pétanque Turnier Manager" styleClass="header-titel"/>
         </HBox>
     </top>
+
+    <bottom>
+        <VBox styleClass="footer-box" alignment="CENTER" spacing="2">
+            <Label text="%footer.spruch" styleClass="footer-spruch"
+                   wrapText="true" textAlignment="CENTER"/>
+            <Label text="Michael Massee" styleClass="footer-autor"/>
+        </VBox>
+    </bottom>
 
 </BorderPane>
