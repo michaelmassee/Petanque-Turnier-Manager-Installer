@@ -143,6 +143,7 @@ jobs:
           $appDir  = Join-Path $dist "PetanqueTurnierManager-Installer"
           $nsi     = Join-Path $dist "installer.nsi"
           $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
+          $icon    = (Resolve-Path ".github/assets/installer-icon.ico").Path
 
           # makensis suchen; falls nicht vorhanden, per Chocolatey installieren
           function Find-Makensis {
@@ -167,6 +168,7 @@ jobs:
           Unicode true
           Name "Pétanque Turnier Manager Installer"
           OutFile "$outExe"
+          Icon "$icon"
           RequestExecutionLevel user
           SilentInstall silent
 

@@ -84,42 +84,42 @@ tasks.register('copyOxt', Copy) {
     description = 'Kopiert die OXT-Datei aus dem Hauptprojekt'
     from(oxtSrc.parentFile) { include oxtSrc.name }
     into generatedResDir.map { it.dir('de/petanqueturniermanager/installer/oxt') }
-    rename { 'extension.oxt' }
-}
-
-tasks.register('generateVersionProperties') {
-    group       = 'build'
-    description = 'Schreibt version.properties mit der aktuellen Projekt-Version'
-    def outFile = generatedResDir.map { it.file('de/petanqueturniermanager/installer/version.properties') }
-    inputs.property 'version', version
-    outputs.file outFile
-    doLast {
-        def f = outFile.get().asFile
-        f.parentFile.mkdirs()
-        f.text = "version=${version}\n"
+        rename { 'extension.oxt' }
     }
-}
 
-tasks.register('copyLogo', Copy) {
-    group       = 'build'
-    description = 'Kopiert das Logo aus dem Hauptprojekt'
-    from("${hauptprojektDir}/images") { include 'petanqueturniermanager-logo-256px.png' }
-    into generatedResDir.map { it.dir('de/petanqueturniermanager/installer/images') }
-    rename { 'logo.png' }
-}
+    tasks.register('generateVersionProperties') {
+        group       = 'build'
+        description = 'Schreibt version.properties mit der aktuellen Projekt-Version'
+        def outFile = generatedResDir.map { it.file('de/petanqueturniermanager/installer/version.properties') }
+        inputs.property 'version', version
+        outputs.file outFile
+        doLast {
+            def f = outFile.get().asFile
+            f.parentFile.mkdirs()
+            f.text = "version=${version}\n"
+        }
+    }
 
-sourceSets.main.resources.srcDir generatedResDir
-processResources.dependsOn copyOxt, copyLogo, generateVersionProperties
+    tasks.register('copyLogo', Copy) {
+        group       = 'build'
+        description = 'Kopiert das Logo aus dem Hauptprojekt'
+        from("${hauptprojektDir}/images") { include 'petanqueturniermanager-logo-256px.png' }
+        into generatedResDir.map { it.dir('de/petanqueturniermanager/installer/images') }
+        rename { 'logo.png' }
+    }
 
-// jlink – minimales Runtime-Image
-def runtimeImageDir  = layout.buildDirectory.dir('runtime-image')
-def distributionsDir = layout.buildDirectory.dir('distributions')
+    sourceSets.main.resources.srcDir generatedResDir
+    processResources.dependsOn copyOxt, copyLogo, generateVersionProperties
 
-def javaLauncher = javaToolchains.launcherFor {
-    languageVersion = JavaLanguageVersion.of(25)
-}
+    // jlink – minimales Runtime-Image
+    def runtimeImageDir  = layout.buildDirectory.dir('runtime-image')
+    def distributionsDir = layout.buildDirectory.dir('distributions')
 
-def javaHomePfad = javaLauncher.map { launcher ->
+    def javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+
+    def javaHomePfad = javaLauncher.map { launcher ->
     launcher.executablePath.asFile.parentFile.parentFile.absolutePath
 }
 
@@ -188,6 +188,11 @@ tasks.register('buildInstaller') {
             '--description', 'Pétanque Turnier Manager – LibreOffice Extension Installer',
             '--vendor', 'Michael Massee'
         ]
+        // Windows-Launcher-EXE: eigenes Icon (jpackage erwartet hier .ico)
+        def winIcon = file('.github/assets/installer-icon.ico')
+        if (org.gradle.internal.os.OperatingSystem.current().isWindows() && winIcon.exists()) {
+            args += ['--icon', winIcon.absolutePath]
+        }
         if (installerType == 'exe' || installerType == 'msi') {
             // Feste UUID: Windows erkennt alle Versionen als dasselbe Produkt (Upgrade statt Neuinstallation)
             args += ['--win-upgrade-uuid', 'A3C7F2E1-5B9D-4E8A-B6C3-1D2F8E4A0C5B']
