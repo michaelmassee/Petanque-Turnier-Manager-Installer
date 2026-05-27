@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      oxt_version:
+        description: 'OXT-/Hauptprojekt-Version (z. B. 5.31.0) – nur für Testbuilds ohne Tag. Bei Tag-Builds leer lassen.'
+        required: false
+        default: ''
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -25,10 +30,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
@@ -81,7 +88,8 @@ jobs:
 
       - name: Build AppImage
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
           ARCH=x86_64 appimagetool build/AppDir \
             "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
           chmod +x "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
@@ -106,10 +114,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
 
@@ -124,17 +134,74 @@ jobs:
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
         shell: bash
 
-      - name: Zip app-image
+      - name: Build self-extracting EXE (NSIS)
+        shell: pwsh
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          cd build/distributions
-          powershell Compress-Archive -Path PetanqueTurnierManager-Installer -DestinationPath "PetanqueTurnierManager-Installer-${VERSION}-windows.zip"
-        shell: bash
+          $version = "${{ github.event.inputs.oxt_version }}"
+          if (-not $version) { $version = "${env:GITHUB_REF_NAME}" -replace '^v','' }
+          $dist    = (Resolve-Path "build/distributions").Path
+          $appDir  = Join-Path $dist "PetanqueTurnierManager-Installer"
+          $nsi     = Join-Path $dist "installer.nsi"
+          $outExe  = Join-Path $dist "PetanqueTurnierManager-Installer-$version-windows.exe"
+
+          # makensis suchen; falls nicht vorhanden, per Chocolatey installieren
+          function Find-Makensis {
+            $p = "C:\Program Files (x86)\NSIS\makensis.exe"
+            if (Test-Path $p) { return $p }
+            $cmd = Get-Command makensis -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+            return $null
+          }
+          $makensis = Find-Makensis
+          if (-not $makensis) {
+            Write-Host "NSIS nicht gefunden – installiere via Chocolatey ..."
+            choco install nsis -y --no-progress | Out-Null
+            $makensis = Find-Makensis
+          }
+          if (-not $makensis) { throw "makensis nicht gefunden (auch nach choco install)" }
+          Write-Host "makensis: $makensis"
+
+          # NSIS-Skript: stiller Extraktor – entpackt das app-image nach %TEMP%,
+          # startet den Wizard und räumt danach auf. Kein UAC (Level user).
+          $script = @"
+          Unicode true
+          Name "Pétanque Turnier Manager Installer"
+          OutFile "$outExe"
+          RequestExecutionLevel user
+          SilentInstall silent
+
+          Section
+            ; eindeutiges Temp-Verzeichnis anlegen
+            GetTempFileName `$0
+            Delete `$0
+            CreateDirectory `$0
+            SetOutPath `$0
+            File /r "$appDir\*"
+            ExecWait '"`$0\PetanqueTurnierManager-Installer.exe"'
+            SetOutPath `$TEMP
+            RMDir /r `$0
+          SectionEnd
+          "@
+          $script = ($script -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
+          [System.IO.File]::WriteAllText($nsi, $script, (New-Object System.Text.UTF8Encoding($false)))
+
+          Write-Host "=== installer.nsi ==="
+          Get-Content $nsi | Write-Host
+
+          & $makensis "/V3" $nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis fehlgeschlagen (ExitCode $LASTEXITCODE)" }
+
+          Write-Host "=== distributions-Inhalt ==="
+          Get-ChildItem $dist | Format-Table Name,Length | Out-String | Write-Host
+          if (-not (Test-Path $outExe)) { throw "EXE wurde nicht erzeugt: $outExe" }
+
+          # Zwischendatei entfernen
+          Remove-Item $nsi -Force
 
       - uses: actions/upload-artifact@v4
         with:
           name: installer-windows
-          path: build/distributions/PetanqueTurnierManager-Installer-*-windows.zip
+          path: build/distributions/PetanqueTurnierManager-Installer-*-windows.exe
           if-no-files-found: error
 
   # ── macOS ─────────────────────────────────────────────────────────────────
@@ -151,10 +218,12 @@ jobs:
 
       - name: Download OXT from main project release
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          TAG="v${VERSION}"
           mkdir -p Petanque-Turnier-Manager/build/distributions
           curl -fL --retry 5 --retry-delay 10 \
-            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${GITHUB_REF_NAME}/PetanqueTurnierManager-${VERSION}.oxt" \
+            "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
       - uses: actions/setup-java@v4
