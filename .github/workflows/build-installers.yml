@@ -244,9 +244,45 @@ jobs:
           path: build/distributions/*.dmg
           if-no-files-found: error
 
+  # ── macOS Smoketest ───────────────────────────────────────────────────────
+  smoketest-macos:
+    needs: build-macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-macos
+          path: dmg-artifact
+
+      - name: Mount DMG
+        run: |
+          DMG=$(ls dmg-artifact/*.dmg | head -1)
+          echo "Mounte: $DMG"
+          hdiutil attach "$DMG" -mountpoint /tmp/ptm-dmg -nobrowse -quiet
+
+      - name: App starten und prüfen
+        run: |
+          APP=$(ls -d /tmp/ptm-dmg/*.app | head -1)
+          echo "Gefundene App: $APP"
+          xattr -dr com.apple.quarantine "$APP" || true
+          open "$APP" &
+          sleep 5
+          APP_NAME=$(basename "$APP" .app)
+          if pgrep -x "$APP_NAME" > /dev/null; then
+            echo "Smoketest bestanden: $APP_NAME laeuft"
+            pkill -x "$APP_NAME" || true
+          else
+            echo "Smoketest fehlgeschlagen: $APP_NAME laeuft nicht"
+            exit 1
+          fi
+
+      - name: DMG aushaengen
+        if: always()
+        run: hdiutil detach /tmp/ptm-dmg -quiet || true
+
   # ── Release ───────────────────────────────────────────────────────────────
   release:
-    needs: [build-linux, build-windows, build-macos]
+    needs: [build-linux, build-windows, build-macos, smoketest-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
