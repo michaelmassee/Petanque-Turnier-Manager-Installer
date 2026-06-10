@@ -11,8 +11,6 @@ on:
         required: false
         default: ''
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
 
@@ -20,9 +18,9 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
           path: Petanque-Turnier-Manager
@@ -38,12 +36,12 @@ jobs:
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build app-image
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
@@ -94,7 +92,7 @@ jobs:
             "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
           chmod +x "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-linux.AppImage"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-linux
           path: build/distributions/PetanqueTurnierManager-Installer-*-linux.AppImage
@@ -104,9 +102,9 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
           path: Petanque-Turnier-Manager
@@ -123,12 +121,12 @@ jobs:
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
         shell: bash
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build app-image
         run: ./gradlew buildInstaller -PinstallerType=app-image -PhauptprojektDir=Petanque-Turnier-Manager
@@ -200,7 +198,7 @@ jobs:
           # Zwischendatei entfernen
           Remove-Item $nsi -Force
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-windows
           path: build/distributions/PetanqueTurnierManager-Installer-*-windows.exe
@@ -210,9 +208,9 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: michaelmassee/Petanque-Turnier-Manager
           path: Petanque-Turnier-Manager
@@ -228,17 +226,17 @@ jobs:
             "https://github.com/michaelmassee/Petanque-Turnier-Manager/releases/download/${TAG}/PetanqueTurnierManager-${VERSION}.oxt" \
             -o "Petanque-Turnier-Manager/build/distributions/PetanqueTurnierManager-${VERSION}.oxt"
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build dmg
         run: ./gradlew buildInstaller -PinstallerType=dmg -PhauptprojektDir=Petanque-Turnier-Manager
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-macos
           path: build/distributions/*.dmg
@@ -249,7 +247,7 @@ jobs:
     needs: build-windows
     runs-on: windows-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: installer-windows
           path: exe-artifact
@@ -275,7 +273,7 @@ jobs:
     needs: build-linux
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: installer-linux
           path: appimage-artifact
@@ -304,7 +302,7 @@ jobs:
     needs: build-macos
     runs-on: macos-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: installer-macos
           path: dmg-artifact
@@ -343,12 +341,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: false
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
           generate_release_notes: true
