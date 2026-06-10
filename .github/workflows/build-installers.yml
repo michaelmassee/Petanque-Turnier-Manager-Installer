@@ -244,6 +244,61 @@ jobs:
           path: build/distributions/*.dmg
           if-no-files-found: error
 
+  # ── Windows Smoketest ────────────────────────────────────────────────────
+  smoketest-windows:
+    needs: build-windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-windows
+          path: exe-artifact
+
+      - name: App starten und prüfen
+        shell: pwsh
+        run: |
+          $exe = (Get-ChildItem exe-artifact\*.exe | Select-Object -First 1).FullName
+          Write-Host "Starte: $exe"
+          Start-Process -FilePath $exe
+          Start-Sleep -Seconds 8
+          $proc = Get-Process -Name "PetanqueTurnierManager-Installer" -ErrorAction SilentlyContinue
+          if ($proc) {
+            Write-Host "Smoketest bestanden: $($proc.Name) laeuft"
+            $proc | Stop-Process -Force
+          } else {
+            Write-Host "Smoketest fehlgeschlagen: PetanqueTurnierManager-Installer laeuft nicht"
+            exit 1
+          }
+
+  # ── Linux Smoketest ───────────────────────────────────────────────────────
+  smoketest-linux:
+    needs: build-linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: installer-linux
+          path: appimage-artifact
+
+      - name: Xvfb und FUSE installieren
+        run: sudo apt-get install -y xvfb libfuse2
+
+      - name: App starten und prüfen
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 &
+          export DISPLAY=:99
+          APPIMAGE=$(ls appimage-artifact/*.AppImage | head -1)
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" &
+          sleep 8
+          if pgrep -f "PetanqueTurnierManager-Installer" > /dev/null; then
+            echo "Smoketest bestanden: PetanqueTurnierManager-Installer laeuft"
+            pkill -f "PetanqueTurnierManager-Installer" || true
+          else
+            echo "Smoketest fehlgeschlagen: PetanqueTurnierManager-Installer laeuft nicht"
+            exit 1
+          fi
+
   # ── macOS Smoketest ───────────────────────────────────────────────────────
   smoketest-macos:
     needs: build-macos
@@ -282,7 +337,7 @@ jobs:
 
   # ── Release ───────────────────────────────────────────────────────────────
   release:
-    needs: [build-linux, build-windows, build-macos, smoketest-macos]
+    needs: [build-linux, build-windows, build-macos, smoketest-linux, smoketest-windows, smoketest-macos]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
