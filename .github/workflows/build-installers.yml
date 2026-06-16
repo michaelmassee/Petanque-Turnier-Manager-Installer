@@ -206,7 +206,15 @@ jobs:
 
   # ── macOS ─────────────────────────────────────────────────────────────────
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: intel
+          - runner: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v6
 
@@ -236,10 +244,17 @@ jobs:
       - name: Build dmg
         run: ./gradlew buildInstaller -PinstallerType=dmg -PhauptprojektDir=Petanque-Turnier-Manager
 
+      - name: Rename dmg with architecture
+        run: |
+          VERSION="${{ github.event.inputs.oxt_version }}"
+          [ -z "$VERSION" ] && VERSION="${GITHUB_REF_NAME#v}"
+          DMG=$(ls build/distributions/*.dmg | head -1)
+          mv "$DMG" "build/distributions/PetanqueTurnierManager-Installer-${VERSION}-macos-${{ matrix.arch }}.dmg"
+
       - uses: actions/upload-artifact@v7
         with:
-          name: installer-macos
-          path: build/distributions/*.dmg
+          name: installer-macos-${{ matrix.arch }}
+          path: build/distributions/PetanqueTurnierManager-Installer-*-macos-${{ matrix.arch }}.dmg
           if-no-files-found: error
 
   # ── Windows Smoketest ────────────────────────────────────────────────────
@@ -300,11 +315,19 @@ jobs:
   # ── macOS Smoketest ───────────────────────────────────────────────────────
   smoketest-macos:
     needs: build-macos
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            arch: intel
+          - runner: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: installer-macos
+          name: installer-macos-${{ matrix.arch }}
           path: dmg-artifact
 
       - name: Mount DMG
@@ -350,6 +373,17 @@ jobs:
         with:
           files: artifacts/**/*
           generate_release_notes: true
+          body: |
+            ### 🖥️ Systemvoraussetzungen / System requirements / Configuration requise
+
+            **macOS:** macOS 11 (Big Sur) oder neuer erforderlich. macOS 10.15 (Catalina) und älter werden **nicht** unterstützt (Java-25-Laufzeit).
+
+            - Intel-Mac → `PetanqueTurnierManager-Installer-<version>-macos-intel.dmg`
+            - Apple Silicon (M1/M2/M3/…) → `PetanqueTurnierManager-Installer-<version>-macos-arm64.dmg`
+
+            > **macOS 11 (Big Sur) or newer required.** macOS 10.15 (Catalina) and earlier are **not** supported (Java 25 runtime). Intel DMG for Intel Macs, arm64 DMG for Apple Silicon.
+
+            > **macOS 11 (Big Sur) ou plus récent requis.** macOS 10.15 (Catalina) et antérieurs ne sont **pas** pris en charge (runtime Java 25). DMG Intel pour Mac Intel, DMG arm64 pour Apple Silicon.
 
       - name: Upload installers to main project release
         env:
