@@ -5,7 +5,13 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 
+import java.awt.Desktop;
+import java.net.URI;
+import java.util.logging.Logger;
+
 public final class AbschlussController {
+
+    private static final Logger LOG = Logger.getLogger(AbschlussController.class.getName());
 
     private final WizardController wizard;
 
@@ -41,5 +47,25 @@ public final class AbschlussController {
     @FXML
     private void onFertig() {
         wizard.getStage().close();
+    }
+
+    @FXML
+    private void onWikiOeffnen() {
+        oeffneLink("https://github.com/michaelmassee/Petanque-Turnier-Manager/wiki");
+    }
+
+    @FXML
+    private void onYoutubeOeffnen() {
+        oeffneLink("https://www.youtube.com/@petanque-turnier-manager2995");
+    }
+
+    private void oeffneLink(String url) {
+        Thread.ofVirtual().start(() -> {
+            try {
+                Desktop.getDesktop().browse(new URI(url));
+            } catch (Exception e) {
+                LOG.warning("Browser öffnen fehlgeschlagen: " + e.getMessage());
+            }
+        });
     }
 }
