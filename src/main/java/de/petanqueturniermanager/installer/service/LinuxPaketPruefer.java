@@ -78,6 +78,10 @@ public final class LinuxPaketPruefer {
         return System.getProperty("os.name", "").toLowerCase().contains("windows");
     }
 
+    public static boolean istMac() {
+        return System.getProperty("os.name", "").toLowerCase().contains("mac");
+    }
+
     public static Optional<PaketManagerInfo> ermittlePaketManager() {
         return PAKET_MANAGER.stream()
             .filter(pm -> istKommandoVerfuegbar(pm.name()))

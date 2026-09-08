@@ -76,10 +76,10 @@ public final class VoraussetzungController {
                     setzeStatus(loStatusSymbol, loStatusText,
                         SYMBOL_FEHLER, "css-fehler",
                         texte.getString("voraussetzung.lo.nicht.gefunden"));
-                    boolean zeigeButton = LinuxPaketPruefer.istWindows()
+                    boolean zeigeButton = LinuxPaketPruefer.istWindows() || LinuxPaketPruefer.istMac()
                         || (LinuxPaketPruefer.istLinux() && LinuxPaketPruefer.ermittleLoInstallKommando().isPresent());
                     if (zeigeButton) {
-                        loInstallierenButton.setText(LinuxPaketPruefer.istWindows()
+                        loInstallierenButton.setText(LinuxPaketPruefer.istWindows() || LinuxPaketPruefer.istMac()
                             ? texte.getString("voraussetzung.lo.download.button")
                             : texte.getString("voraussetzung.lo.installieren.button"));
                     }
@@ -102,11 +102,11 @@ public final class VoraussetzungController {
                 }
                 boolean javaOk = javaPruef.gefunden() && !javaPruef.hatWarnung();
                 boolean zeigeJavaButton = !javaOk
-                    && (LinuxPaketPruefer.istLinux() || LinuxPaketPruefer.istWindows());
+                    && (LinuxPaketPruefer.istLinux() || LinuxPaketPruefer.istWindows() || LinuxPaketPruefer.istMac());
                 if (zeigeJavaButton) {
-                    javaInstallierenButton.setText(LinuxPaketPruefer.istWindows()
-                        ? texte.getString("voraussetzung.java.download.button")
-                        : texte.getString("voraussetzung.java.installieren.button"));
+                    javaInstallierenButton.setText(LinuxPaketPruefer.istLinux()
+                        ? texte.getString("voraussetzung.java.installieren.button")
+                        : texte.getString("voraussetzung.java.download.button"));
                 }
                 javaInstallierenButton.setVisible(zeigeJavaButton);
                 javaInstallierenButton.setManaged(zeigeJavaButton);
@@ -159,7 +159,7 @@ public final class VoraussetzungController {
 
     @FXML
     private void onJavaInstallieren() {
-        if (LinuxPaketPruefer.istWindows()) {
+        if (LinuxPaketPruefer.istWindows() || LinuxPaketPruefer.istMac()) {
             try {
                 Desktop.getDesktop().browse(new URI("https://adoptium.net/temurin"));
             } catch (Exception e) {
@@ -183,7 +183,7 @@ public final class VoraussetzungController {
 
     @FXML
     private void onLoInstallieren() {
-        if (LinuxPaketPruefer.istWindows()) {
+        if (LinuxPaketPruefer.istWindows() || LinuxPaketPruefer.istMac()) {
             try {
                 Desktop.getDesktop().browse(new URI("https://www.libreoffice.org/download/download-libreoffice/"));
             } catch (Exception e) {
