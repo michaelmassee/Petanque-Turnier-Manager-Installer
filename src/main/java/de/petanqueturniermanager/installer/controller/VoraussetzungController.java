@@ -1,10 +1,12 @@
 package de.petanqueturniermanager.installer.controller;
 
 import de.petanqueturniermanager.installer.WizardController;
+import de.petanqueturniermanager.installer.service.ArchitekturPruefer;
 import de.petanqueturniermanager.installer.service.JavaInstallationsHelfer;
 import de.petanqueturniermanager.installer.service.LibreOfficeErkennung;
 import de.petanqueturniermanager.installer.service.LibreOfficeJavaPruefer;
 import de.petanqueturniermanager.installer.service.LinuxPaketPruefer;
+import de.petanqueturniermanager.installer.service.PruefErgebnis;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -57,9 +59,18 @@ public final class VoraussetzungController {
         var texte = wizard.getTexte();
         Thread.ofVirtual().start(() -> {
             try {
-            var unopkg     = LibreOfficeErkennung.findeUnopkg();
-            var javaPruef  = LibreOfficeJavaPruefer.pruefeJavaVersion(texte);
-            var paketPruef = LinuxPaketPruefer.pruefePaket(texte);
+            var unopkg          = LibreOfficeErkennung.findeUnopkg();
+            var javaPruefRoh    = LibreOfficeJavaPruefer.pruefeJavaVersion(texte);
+            var paketPruef      = LinuxPaketPruefer.pruefePaket(texte);
+
+            if (unopkg.isPresent() && javaPruefRoh.gefunden() && !javaPruefRoh.hatWarnung()) {
+                var archWarnung = ArchitekturPruefer.pruefeMismatch(unopkg.get(),
+                    LibreOfficeJavaPruefer.ermittleAktiveJreHome().orElse(null), texte);
+                if (archWarnung.isPresent()) {
+                    javaPruefRoh = PruefErgebnis.veraltet(javaPruefRoh.version(), archWarnung.get());
+                }
+            }
+            final var javaPruef = javaPruefRoh;
 
             Platform.runLater(() -> {
                 ladeAnzeige.setVisible(false);

@@ -47,6 +47,28 @@ public final class LibreOfficeJavaPruefer {
         return pruefeSystemJava(texte);
     }
 
+    /**
+     * Liefert den JRE-Home-Pfad, den {@link #pruefeJavaVersion(ResourceBundle)} auch prüft
+     * (LO-Konfiguration → sdkman → JAVA_HOME), sofern sich ein konkreter Pfad ermitteln lässt.
+     * Leer, wenn nur die PATH-Autoerkennung greift (kein fester Installationspfad bekannt).
+     */
+    public static Optional<Path> ermittleAktiveJreHome() {
+        var konfigPfad = ermittleKonfigPfad();
+        if (konfigPfad.isPresent()) {
+            var jrePfad = leseJrePfadAusKonfig(konfigPfad.get());
+            if (jrePfad.isPresent()) return jrePfad;
+            if (!System.getProperty("os.name", "").toLowerCase().contains("win")) {
+                var sdkmanPfad = ermittleSdkmanJavaPfad();
+                if (sdkmanPfad.isPresent()) return sdkmanPfad;
+            }
+        }
+        var javaHome = System.getenv("JAVA_HOME");
+        if (javaHome != null && !javaHome.isBlank()) {
+            return Optional.of(Path.of(javaHome));
+        }
+        return Optional.empty();
+    }
+
     private static Optional<Path> ermittleSdkmanJavaPfad() {
         var sdkmanBase = Path.of(System.getProperty("user.home"), ".sdkman", "candidates", "java");
         if (!Files.isDirectory(sdkmanBase)) return Optional.empty();
