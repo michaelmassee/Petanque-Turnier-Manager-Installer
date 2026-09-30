@@ -34,11 +34,13 @@ final class Smoketest {
 
     private final WizardController wizard;
     private final List<Locale> sprachen;
+    private final Locale startSprache;
     private final List<String> fehler = new ArrayList<>();
 
-    Smoketest(WizardController wizard, List<Locale> sprachen) {
-        this.wizard   = wizard;
-        this.sprachen = sprachen;
+    Smoketest(WizardController wizard, List<Locale> sprachen, Locale startSprache) {
+        this.wizard       = wizard;
+        this.sprachen     = sprachen;
+        this.startSprache = startSprache;
     }
 
     /** Muss auf dem JavaFX-Application-Thread aufgerufen werden. */
@@ -64,6 +66,7 @@ final class Smoketest {
             });
         }
 
+        wizard.wechseleSprachenBundle(startSprache);
         var texte = wizard.getTexte();
         pruefe("LibreOffice-Erkennung", () ->
             melde("unopkg: " + LibreOfficeErkennung.findeUnopkg().map(Object::toString).orElse("nicht gefunden")));

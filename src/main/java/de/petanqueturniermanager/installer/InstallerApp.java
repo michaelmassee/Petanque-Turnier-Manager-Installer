@@ -86,7 +86,7 @@ public final class InstallerApp extends Application {
 
         if (smoketest) {
             var smoketestSprachen = List.copyOf(sprachen.values());
-            Platform.runLater(() -> new Smoketest(wizard, smoketestSprachen).ausfuehren());
+            Platform.runLater(() -> new Smoketest(wizard, smoketestSprachen, locale).ausfuehren());
         }
     }
 
