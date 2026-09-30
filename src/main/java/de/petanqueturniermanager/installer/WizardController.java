@@ -19,14 +19,21 @@ public final class WizardController {
     private final BorderPane hauptLayout;
     private final InstallerZustand zustand;
     private ResourceBundle texte;
+    private final boolean smoketest;
     private String aktuellerScreen;
 
     public WizardController(Stage stage, BorderPane hauptLayout,
                             InstallerZustand zustand, ResourceBundle texte) {
+        this(stage, hauptLayout, zustand, texte, false);
+    }
+
+    public WizardController(Stage stage, BorderPane hauptLayout,
+                            InstallerZustand zustand, ResourceBundle texte, boolean smoketest) {
         this.stage       = stage;
         this.hauptLayout = hauptLayout;
         this.zustand     = zustand;
         this.texte       = texte;
+        this.smoketest   = smoketest;
     }
 
     public void zeigeWillkommen() {
@@ -59,6 +66,11 @@ public final class WizardController {
 
     public Stage getStage() {
         return stage;
+    }
+
+    /** Im Smoketest-Modus lösen Screens keine System-Prüfungen oder Installationen aus. */
+    public boolean isSmoketest() {
+        return smoketest;
     }
 
     public void wechseleSprachenBundle(Locale neueLocale) {

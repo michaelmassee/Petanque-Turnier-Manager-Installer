@@ -15,6 +15,10 @@ JavaFX-Installations-Wizard (Version aus `gradle.properties`) für das LibreOffi
 # Alle Tests ausführen
 ./gradlew test
 
+# Smoketest: lädt alle Screens in allen Sprachen, prüft OXT/Ressourcen, Exit-Code 0/1
+# (läuft in der CI gegen die fertigen Pakete; installiert nichts)
+./gradlew run --args=--smoketest
+
 # Einzelnen Test ausführen
 ./gradlew test --tests "de.ptminstaller.LibreOfficeErkennungTest"
 

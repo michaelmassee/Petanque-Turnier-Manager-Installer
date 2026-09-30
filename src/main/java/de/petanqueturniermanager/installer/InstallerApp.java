@@ -1,6 +1,7 @@
 package de.petanqueturniermanager.installer;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -13,6 +14,7 @@ import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -58,8 +60,9 @@ public final class InstallerApp extends Application {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         ((HBox) hauptLayout.getTop()).getChildren().addAll(spacer, sprachenBox);
 
+        var smoketest = Smoketest.istAktiv(getParameters().getRaw());
         var zustand = new InstallerZustand();
-        var wizard  = new WizardController(primaryStage, hauptLayout, zustand, texte);
+        var wizard  = new WizardController(primaryStage, hauptLayout, zustand, texte, smoketest);
 
         sprachenBox.setOnAction(e -> {
             var neueLocale = sprachen.get(sprachenBox.getValue());
@@ -80,6 +83,11 @@ public final class InstallerApp extends Application {
         primaryStage.show();
 
         wizard.zeigeWillkommen();
+
+        if (smoketest) {
+            var smoketestSprachen = List.copyOf(sprachen.values());
+            Platform.runLater(() -> new Smoketest(wizard, smoketestSprachen).ausfuehren());
+        }
     }
 
     public static void main(String[] args) {

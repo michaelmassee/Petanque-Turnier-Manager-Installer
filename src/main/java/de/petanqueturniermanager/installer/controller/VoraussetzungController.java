@@ -52,7 +52,9 @@ public final class VoraussetzungController {
     private void initialize() {
         weiterButton.setDisable(true);
         ladeAnzeige.setVisible(true);
-        fuehrePruefungDurch();
+        if (!wizard.isSmoketest()) {
+            fuehrePruefungDurch();
+        }
     }
 
     private void fuehrePruefungDurch() {
@@ -260,7 +262,9 @@ public final class VoraussetzungController {
         weiterButton.setDisable(true);
         aktualisierenButton.setDisable(true);
         ladeAnzeige.setVisible(true);
-        fuehrePruefungDurch();
+        if (!wizard.isSmoketest()) {
+            fuehrePruefungDurch();
+        }
     }
 
     @FXML

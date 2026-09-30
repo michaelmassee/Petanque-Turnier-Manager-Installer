@@ -162,8 +162,10 @@ jobs:
 
           # NSIS-Skript: stiller Extraktor – entpackt das app-image nach %TEMP%,
           # startet den Wizard und räumt danach auf. Kein UAC (Level user).
+          # Kommandozeilen-Parameter (z. B. --smoketest) und Exit-Code werden durchgereicht.
           $script = @"
           Unicode true
+          !include FileFunc.nsh
           Name "Pétanque Turnier Manager Installer"
           OutFile "$outExe"
           Icon "$icon"
@@ -177,9 +179,15 @@ jobs:
             CreateDirectory `$0
             SetOutPath `$0
             File /r "$appDir\*"
-            ExecWait '"`$0\PetanqueTurnierManager-Installer.exe"'
+            `${GetParameters} `$1
+            ClearErrors
+            ExecWait '"`$0\PetanqueTurnierManager-Installer.exe" `$1' `$2
+            ; Launcher konnte nicht gestartet werden -> Fehlercode statt 0
+            IfErrors 0 +2
+            StrCpy `$2 1
             SetOutPath `$TEMP
             RMDir /r `$0
+            SetErrorLevel `$2
           SectionEnd
           "@
           $script = ($script -split "`r?`n" | ForEach-Object { $_.TrimStart() }) -join "`r`n"
@@ -267,21 +275,18 @@ jobs:
           name: installer-windows
           path: exe-artifact
 
-      - name: App starten und prüfen
+      - name: Smoketest ausführen
         shell: pwsh
+        timeout-minutes: 10
         run: |
           $exe = (Get-ChildItem exe-artifact\*.exe | Select-Object -First 1).FullName
-          Write-Host "Starte: $exe"
-          Start-Process -FilePath $exe
-          Start-Sleep -Seconds 8
-          $proc = Get-Process -Name "PetanqueTurnierManager-Installer" -ErrorAction SilentlyContinue
-          if ($proc) {
-            Write-Host "Smoketest bestanden: $($proc.Name) laeuft"
-            $proc | Stop-Process -Force
-          } else {
-            Write-Host "Smoketest fehlgeschlagen: PetanqueTurnierManager-Installer laeuft nicht"
-            exit 1
-          }
+          Write-Host "Starte: $exe --smoketest"
+          $proc = Start-Process -FilePath $exe -ArgumentList '--smoketest' -Wait -PassThru
+          $log = Join-Path $env:TEMP 'ptm-installer-smoketest.log'
+          Write-Host "Exit-Code: $($proc.ExitCode)"
+          if (-not (Test-Path $log)) { Write-Host "Keine Smoketest-Logdatei gefunden: $log"; exit 1 }
+          Get-Content $log | Write-Host
+          if ($proc.ExitCode -ne 0) { exit 1 }
 
   # ── Linux Smoketest ───────────────────────────────────────────────────────
   smoketest-linux:
@@ -296,21 +301,12 @@ jobs:
       - name: Xvfb und FUSE installieren
         run: sudo apt-get install -y xvfb libfuse2
 
-      - name: App starten und prüfen
+      - name: Smoketest ausführen
+        timeout-minutes: 10
         run: |
-          Xvfb :99 -screen 0 1024x768x24 &
-          export DISPLAY=:99
           APPIMAGE=$(ls appimage-artifact/*.AppImage | head -1)
           chmod +x "$APPIMAGE"
-          "$APPIMAGE" &
-          sleep 8
-          if pgrep -f "PetanqueTurnierManager-Installer" > /dev/null; then
-            echo "Smoketest bestanden: PetanqueTurnierManager-Installer laeuft"
-            pkill -f "PetanqueTurnierManager-Installer" || true
-          else
-            echo "Smoketest fehlgeschlagen: PetanqueTurnierManager-Installer laeuft nicht"
-            exit 1
-          fi
+          xvfb-run -a "$APPIMAGE" --smoketest
 
   # ── macOS Smoketest ───────────────────────────────────────────────────────
   smoketest-macos:
@@ -336,21 +332,13 @@ jobs:
           echo "Mounte: $DMG"
           hdiutil attach "$DMG" -mountpoint /tmp/ptm-dmg -nobrowse -quiet
 
-      - name: App starten und prüfen
+      - name: Smoketest ausführen
+        timeout-minutes: 10
         run: |
           APP=$(ls -d /tmp/ptm-dmg/*.app | head -1)
-          echo "Gefundene App: $APP"
-          xattr -dr com.apple.quarantine "$APP" || true
-          open "$APP" &
-          sleep 5
           APP_NAME=$(basename "$APP" .app)
-          if pgrep -x "$APP_NAME" > /dev/null; then
-            echo "Smoketest bestanden: $APP_NAME laeuft"
-            pkill -x "$APP_NAME" || true
-          else
-            echo "Smoketest fehlgeschlagen: $APP_NAME laeuft nicht"
-            exit 1
-          fi
+          echo "Gefundene App: $APP"
+          "$APP/Contents/MacOS/$APP_NAME" --smoketest
 
       - name: DMG aushaengen
         if: always()

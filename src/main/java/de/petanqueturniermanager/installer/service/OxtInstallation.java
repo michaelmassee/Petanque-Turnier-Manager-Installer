@@ -27,6 +27,26 @@ public final class OxtInstallation {
         }
     }
 
+    /**
+     * Prüft, ob die eingebettete OXT vorhanden ist und ein ZIP-Archiv ist.
+     *
+     * @return Größe der OXT in Bytes
+     */
+    public static long pruefeEingebetteteOxt() throws OxtInstallationsException {
+        try (InputStream ressource = OxtInstallation.class.getResourceAsStream(OXT_RESSOURCE_PFAD)) {
+            if (ressource == null) {
+                throw new OxtInstallationsException("OXT-Ressource nicht gefunden: " + OXT_RESSOURCE_PFAD);
+            }
+            var inhalt = ressource.readAllBytes();
+            if (inhalt.length < 4 || inhalt[0] != 'P' || inhalt[1] != 'K') {
+                throw new OxtInstallationsException("OXT-Ressource ist kein ZIP-Archiv: " + OXT_RESSOURCE_PFAD);
+            }
+            return inhalt.length;
+        } catch (IOException e) {
+            throw new OxtInstallationsException("Fehler beim Lesen der OXT: " + e.getMessage(), e);
+        }
+    }
+
     private static Path extrahiereOxtNachTemp(Consumer<String> log) throws OxtInstallationsException {
         log.accept("Suche eingebettete OXT-Datei …");
         try {

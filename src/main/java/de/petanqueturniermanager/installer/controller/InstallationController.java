@@ -32,7 +32,9 @@ public final class InstallationController {
         weiterButton.setDisable(true);
         fortschrittsBalken.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
         logAusgabe.setEditable(false);
-        starteInstallation();
+        if (!wizard.isSmoketest()) {
+            starteInstallation();
+        }
     }
 
     private void starteInstallation() {
