@@ -400,3 +400,14 @@ jobs:
           gh release view "$TAG" --repo "$REPO" 2>/dev/null \
             && gh release upload "$TAG" --repo "$REPO" --clobber artifacts/**/* \
             || echo "Kein Release '$TAG' in $REPO – übersprungen"
+
+      - name: Update-Feed (update.xml) am Hauptprojekt-Release prüfen
+        env:
+          GH_TOKEN: ${{ secrets.PTM_MAIN_REPO_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          REPO="michaelmassee/Petanque-Turnier-Manager"
+          # description.xml der OXT verweist auf releases/latest/download/update.xml (RELEASE.md, Schritt 6).
+          if ! gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx 'update.xml'; then
+            echo "::warning::update.xml fehlt am Release $TAG in $REPO – die LO-Update-Suche meldet sonst einen Fehler. Nachholen: gh release upload $TAG build/distributions/update.xml --repo $REPO"
+          fi
